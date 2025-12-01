@@ -76,6 +76,10 @@ app.include_router(
     # responses={404: {"description": "Not found"}},
 )
 
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "message": "Ethernity DAO backend alive!"}
+
 @app.get("/")
 async def root():
     return {
@@ -85,7 +89,6 @@ async def root():
         "environment": settings.ENVIRONMENT,
         "docs": "/docs" if settings.DEBUG else "disabled in production"
     }
-
 
 @app.get("/health")
 async def health_check():
