@@ -1,0 +1,77 @@
+# ENVIRONMENT
+.env
+.env.local
+.env.*.local
+*.env
+
+# PYTHON
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# VIRTUAL ENVIRONMENT
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# TESTING
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# DATABASE
+*.db
+*.sqlite
+*.sqlite3
+test.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# LOGGING
+*.log
+logs/
+
+# MYPY
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# JUPYTER
+.ipynb_checkpoints
+
+# ALEMBIC (mantene versiones, no el cache)
+alembic/__pycache__/
+
+# OTROS
+.ruff_cache/
