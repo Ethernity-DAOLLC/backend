@@ -9,8 +9,7 @@ from app.core.config import settings
 from app.api.v1.api import api_router
 from app.db.session import engine
 from app.db.base import Base
-
-
+from sqlalchemy import text
 
 logging.basicConfig(
     level=settings.LOG_LEVEL,
@@ -27,13 +26,11 @@ def init_db():
         logger.error(f"❌ Error al crear tablas: {e}")
         raise
 
-from sqlalchemy import text
-
 def check_db_connection() -> bool:
     try:
         from app.db.session import SessionLocal
         db = SessionLocal()
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db.close()
         logger.info("✅ Conexión a base de datos exitosa")
         return True
