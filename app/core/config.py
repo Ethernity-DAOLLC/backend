@@ -33,15 +33,21 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-
-    ADMIN_EMAIL: Optional[str] = None
     ADMIN_PASSWORD: str
     ADMIN_TOKEN: str
     ACTIVE_NETWORK: str = "arbitrum-sepolia"
+    EMAIL_FROM: str = "noreply@ethernity-dao.com"
+ 
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_TLS: bool = True
 
     SENDGRID_API_KEY: Optional[str] = None
-    EMAIL_FROM: Optional[str] = None
 
+    ADMIN_EMAIL: Optional[str] = None
+    ADMIN_EMAILS: List[str] = Field(default_factory=lambda: ["admin@ethernity-dao.com"])
     LOG_LEVEL: str = "INFO"
 
     model_config = SettingsConfigDict(
@@ -54,13 +60,6 @@ class Settings(BaseSettings):
     @field_validator('BACKEND_CORS_ORIGINS', mode='before')
     @classmethod
     def parse_cors_origins(cls, v):
-        """
-        Parse CORS origins from multiple formats:
-        - JSON array string: '["http://localhost:3000","https://app.com"]'
-        - Comma-separated: 'http://localhost:3000,https://app.com'
-        - Single value: 'https://app.com'
-        - List (already parsed): ['http://localhost:3000']
-        """
         if v is None:
             return [
                 "http://localhost:3000",
@@ -89,10 +88,8 @@ class Settings(BaseSettings):
             if ',' in v:
                 origins = [origin.strip() for origin in v.split(',')]
                 return [o for o in origins if o]
-
             return [v]
-        
-        # Fallback
+
         logger.warning(f"Unexpected CORS type: {type(v)}. Using defaults.")
         return [
             "http://localhost:3000",
@@ -100,6 +97,22 @@ class Settings(BaseSettings):
             "https://www.ethernity-dao.com",
             "https://ethernity-dao.com",
         ]
+
+    @field_validator('ADMIN_EMAILS', mode='before')
+    @classmethod
+    def parse_admin_emails(cls, v):
+        if v is None:
+            return ["admin@ethernity-dao.com"]
+        
+        if isinstance(v, list):
+            return v
+        
+        if isinstance(v, str):
+            if ',' in v:
+                return [email.strip() for email in v.split(',') if email.strip()]
+            return [v.strip()] if v.strip() else ["admin@ethernity-dao.com"]
+        
+        return ["admin@ethernity-dao.com"]
 
     @property
     def database_url_sync(self) -> str:
@@ -113,6 +126,12 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT == "production"
+
+    @property
+    def email_enabled(self) -> bool:
+        has_smtp = bool(self.SMTP_HOST and self.SMTP_USER)
+        has_sendgrid = bool(self.SENDGRID_API_KEY)
+        return has_smtp or has_sendgrid
 
     def get_contracts_config(self) -> Dict[str, Any]:
         contracts_file = Path(__file__).parent.parent / "config" / "contracts.json"
