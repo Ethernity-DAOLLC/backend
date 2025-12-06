@@ -145,9 +145,3 @@ def get_settings() -> Settings:
     return Settings()
 
 settings = get_settings()
-
-Ahora en Railway, configura `BACKEND_CORS_ORIGINS` con cualquiera de estos formatos:
-
-http://localhost:3000,http://localhost:5173,https://www.ethernity-dao.com,https://ethernity-dao.com
-
-https://www.ethernity-dao.com,https://ethernity-dao.com
