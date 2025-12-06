@@ -1,15 +1,12 @@
-# ENVIRONMENT
-.env
-.env.local
-.env.*.local
-*.env
-
-# PYTHON
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+env/
+venv/
+ENV/
 build/
 develop-eggs/
 dist/
@@ -26,29 +23,18 @@ wheels/
 .installed.cfg
 *.egg
 
-# VIRTUAL ENVIRONMENT
+# Virtual environments
 venv/
-env/
 ENV/
-env.bak/
-venv.bak/
+env/
+.venv
 
-# TESTING
-.pytest_cache/
-.coverage
-.coverage.*
-htmlcov/
-.tox/
-.nox/
-coverage.xml
-*.cover
-.hypothesis/
-
-# DATABASE
-*.db
-*.sqlite
-*.sqlite3
-test.db
+# Environment variables
+.env
+.env.local
+.env.production
+.env.*.local
+*.env
 
 # IDE
 .vscode/
@@ -58,20 +44,22 @@ test.db
 *~
 .DS_Store
 
-# LOGGING
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
 *.log
 logs/
 
-# MYPY
-.mypy_cache/
-.dmypy.json
-dmypy.json
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
 
-# JUPYTER
-.ipynb_checkpoints
+# Railway
+.railway/
 
-# ALEMBIC (mantene versiones, no el cache)
-alembic/__pycache__/
-
-# OTROS
-.ruff_cache/
+# Alembic (si usas migraciones)
+alembic/versions/*.pyc

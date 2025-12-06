@@ -1,4 +1,6 @@
 from sqlalchemy.ext.declarative import declarative_base
+from app.db.base_class import Base
+from app.models.user import User
 
 Base = declarative_base()
 

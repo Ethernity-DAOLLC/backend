@@ -16,19 +16,41 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def init_db():
+    try:
+        logger.info("📊 Creando tablas en la base de datos...")
+        Base.metadata.create_all(bind=engine)
+        logger.info("✅ Tablas creadas exitosamente")
+    except Exception as e:
+        logger.error(f"❌ Error al crear tablas: {e}")
+        raise
+
+def check_db_connection() -> bool:
+    try:
+        from app.db.session import SessionLocal
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        db.close()
+        logger.info("✅ Conexión a base de datos exitosa")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Error de conexión a base de datos: {e}")
+        return False
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info(f"🚀 Starting {settings.PROJECT_NAME} v{settings.VERSION}")
-    logger.info(f"📍 Environment: {settings.ENVIRONMENT}")
-    logger.info(f"🗄️  Database: {settings.DATABASE_URL[:30]}...")
+    logger.info(f"🚀 Iniciando {settings.PROJECT_NAME} v{settings.VERSION}")
+    logger.info(f"🔧 Environment: {settings.ENVIRONMENT}")
+    logger.info(f"🗄️ Database: {settings.DATABASE_URL[:30]}...")
 
-    if settings.ENVIRONMENT == "development":
-        logger.info("📊 Creating database tables...")
-        Base.metadata.create_all(bind=engine)
-    
+    if not check_db_connection():
+        logger.error("❌ No se pudo conectar a la base de datos. Abortando inicio.")
+        raise Exception("Database connection failed")
+
+    init_db()
+    logger.info("✅ Aplicación iniciada correctamente")
     yield
-
-    logger.info("👋 Shutting down application")
+    logger.info("👋 Cerrando aplicación...")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -42,23 +64,27 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS + [settings.FRONTEND_URL],
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-if settings.ENVIRONMENT == "production":
+if settings.is_production:
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["*.railway.app", "*.render.com", "*.vercel.app"]
+        allowed_hosts=[
+            "*.railway.app",
+            "*.up.railway.app",
+            "ethernity-dao.com",
+            "www.ethernity-dao.com",
+            "localhost"
+        ]
     )
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     logger.error(f"❌ Unhandled exception: {exc}", exc_info=True)
-    
-    # En producción, no mostrar detalles del error
     detail = str(exc) if settings.DEBUG else "Internal server error"
     
     return JSONResponse(
@@ -68,17 +94,10 @@ async def global_exception_handler(request, exc):
             "type": "internal_error"
         }
     )
-
 app.include_router(
     api_router,
     prefix=settings.API_V1_STR,
-    # dependencies=[Depends(get_current_admin)]
-    # responses={404: {"description": "Not found"}},
 )
-
-@app.get("/health")
-async def health_check():
-    return {"status": "ok", "message": "Ethernity DAO backend alive!"}
 
 @app.get("/")
 async def root():
@@ -92,19 +111,21 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    try:
-        from app.db.session import SessionLocal
-        db = SessionLocal()
-        db.execute("SELECT 1")
-        db.close()
-        db_status = "connected"
-    except Exception as e:
-        logger.error(f"Database health check failed: {e}")
-        db_status = "disconnected"
+    db_status = "connected" if check_db_connection() else "disconnected"
     
     return {
         "status": "healthy" if db_status == "connected" else "unhealthy",
         "database": db_status,
         "version": settings.VERSION,
-        "environment": settings.ENVIRONMENT
+        "environment": settings.ENVIRONMENT,
+        "project": settings.PROJECT_NAME
+    }
+
+@app.get("/api/stats")
+async def get_stats():
+
+    return {
+        "total_users": 0,
+        "total_contributions": 0,
+        "total_withdrawals": 0
     }

@@ -1,0 +1,140 @@
+{
+  "networks": {
+    "arbitrum-sepolia": {
+      "name": "Arbitrum Sepolia",
+      "chainId": 421614,
+      "rpc": "https://sepolia-rollup.arbitrum.io/rpc",
+      "explorer": "https://sepolia.arbiscan.io",
+      "testnet": true,
+      "contracts": {
+        "dateTime": "0x0000000000000000000000000000000000000000",
+        "token": "0x0000000000000000000000000000000000000000",
+        "personalFund": "0x0000000000000000000000000000000000000000",
+        "governance": "0x0000000000000000000000000000000000000000",
+        "treasury": "0x0000000000000000000000000000000000000000",
+        "userPreferences": "0x0000000000000000000000000000000000000000",
+        "protocolRegistry": "0x0000000000000000000000000000000000000000",
+        "factory": "0x0000000000000000000000000000000000000000"
+      }
+    },
+    "zksync-sepolia": {
+      "name": "zkSync Sepolia",
+      "chainId": 300,
+      "rpc": "https://sepolia.era.zksync.dev",
+      "explorer": "https://sepolia.explorer.zksync.io",
+      "testnet": true,
+      "contracts": {
+        "dateTime": "0x0000000000000000000000000000000000000000",
+        "token": "0x0000000000000000000000000000000000000000",
+        "personalFund": "0x0000000000000000000000000000000000000000",
+        "governance": "0x0000000000000000000000000000000000000000",
+        "treasury": "0x0000000000000000000000000000000000000000",
+        "userPreferences": "0x0000000000000000000000000000000000000000",
+        "protocolRegistry": "0x0000000000000000000000000000000000000000",
+        "factory": "0x0000000000000000000000000000000000000000"
+      }
+    },
+    "arbitrum": {
+      "name": "Arbitrum One",
+      "chainId": 42161,
+      "rpc": "https://arb1.arbitrum.io/rpc",
+      "explorer": "https://arbiscan.io",
+      "testnet": false,
+      "contracts": {
+        "dateTime": "0x0000000000000000000000000000000000000000",
+        "token": "0x0000000000000000000000000000000000000000",
+        "personalFund": "0x0000000000000000000000000000000000000000",
+        "governance": "0x0000000000000000000000000000000000000000",
+        "treasury": "0x0000000000000000000000000000000000000000",
+        "userPreferences": "0x0000000000000000000000000000000000000000",
+        "protocolRegistry": "0x0000000000000000000000000000000000000000",
+        "factory": "0x0000000000000000000000000000000000000000"
+      }
+    },
+    "zksync": {
+      "name": "zkSync Era",
+      "chainId": 324,
+      "rpc": "https://mainnet.era.zksync.io",
+      "explorer": "https://explorer.zksync.io",
+      "testnet": false,
+      "contracts": {
+        "dateTime": "0x0000000000000000000000000000000000000000",
+        "token": "0x0000000000000000000000000000000000000000",
+        "personalFund": "0x0000000000000000000000000000000000000000",
+        "governance": "0x0000000000000000000000000000000000000000",
+        "treasury": "0x0000000000000000000000000000000000000000",
+        "userPreferences": "0x0000000000000000000000000000000000000000",
+        "protocolRegistry": "0x0000000000000000000000000000000000000000",
+        "factory": "0x0000000000000000000000000000000000000000"
+      }
+    },
+    "ethereum": {
+      "name": "Ethereum Mainnet",
+      "chainId": 1,
+      "rpc": "https://eth.llamarpc.com",
+      "explorer": "https://etherscan.io",
+      "testnet": false,
+      "contracts": {
+        "dateTime": "0x0000000000000000000000000000000000000000",
+        "token": "0x0000000000000000000000000000000000000000",
+        "personalFund": "0x0000000000000000000000000000000000000000",
+        "governance": "0x0000000000000000000000000000000000000000",
+        "treasury": "0x0000000000000000000000000000000000000000",
+        "userPreferences": "0x0000000000000000000000000000000000000000",
+        "protocolRegistry": "0x0000000000000000000000000000000000000000",
+        "factory": "0x0000000000000000000000000000000000000000"
+      }
+    },
+    "polygon": {
+      "name": "Polygon",
+      "chainId": 137,
+      "rpc": "https://polygon-rpc.com",
+      "explorer": "https://polygonscan.com",
+      "testnet": false,
+      "contracts": {
+        "dateTime": "0x0000000000000000000000000000000000000000",
+        "token": "0x0000000000000000000000000000000000000000",
+        "personalFund": "0x0000000000000000000000000000000000000000",
+        "governance": "0x0000000000000000000000000000000000000000",
+        "treasury": "0x0000000000000000000000000000000000000000",
+        "userPreferences": "0x0000000000000000000000000000000000000000",
+        "protocolRegistry": "0x0000000000000000000000000000000000000000",
+        "factory": "0x0000000000000000000000000000000000000000"
+      }
+    },
+    "base": {
+      "name": "Base",
+      "chainId": 8453,
+      "rpc": "https://mainnet.base.org",
+      "explorer": "https://basescan.org",
+      "testnet": false,
+      "contracts": {
+        "dateTime": "0x0000000000000000000000000000000000000000",
+        "token": "0x0000000000000000000000000000000000000000",
+        "personalFund": "0x0000000000000000000000000000000000000000",
+        "governance": "0x0000000000000000000000000000000000000000",
+        "treasury": "0x0000000000000000000000000000000000000000",
+        "userPreferences": "0x0000000000000000000000000000000000000000",
+        "protocolRegistry": "0x0000000000000000000000000000000000000000",
+        "factory": "0x0000000000000000000000000000000000000000"
+      }
+    },
+    "optimism": {
+      "name": "Optimism",
+      "chainId": 10,
+      "rpc": "https://mainnet.optimism.io",
+      "explorer": "https://optimistic.etherscan.io",
+      "testnet": false,
+      "contracts": {
+        "dateTime": "0x0000000000000000000000000000000000000000",
+        "token": "0x0000000000000000000000000000000000000000",
+        "personalFund": "0x0000000000000000000000000000000000000000",
+        "governance": "0x0000000000000000000000000000000000000000",
+        "treasury": "0x0000000000000000000000000000000000000000",
+        "userPreferences": "0x0000000000000000000000000000000000000000",
+        "protocolRegistry": "0x0000000000000000000000000000000000000000",
+        "factory": "0x0000000000000000000000000000000000000000"
+      }
+    }
+  }
+}
