@@ -10,6 +10,8 @@ from app.api.v1.api import api_router
 from app.db.session import engine
 from app.db.base import Base
 
+
+
 logging.basicConfig(
     level=settings.LOG_LEVEL,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -24,6 +26,8 @@ def init_db():
     except Exception as e:
         logger.error(f"❌ Error al crear tablas: {e}")
         raise
+
+from sqlalchemy import text
 
 def check_db_connection() -> bool:
     try:
