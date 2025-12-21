@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 def init_db():
     try:
         logger.info("📊 Creando tablas en la base de datos...")
-        Base.metadata.create_all(bind=engine)
+        # Base.metadata.create_all(bind=engine)
         logger.info("✅ Tablas creadas exitosamente")
     except Exception as e:
         logger.error(f"❌ Error al crear tablas: {e}")
