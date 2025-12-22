@@ -4,6 +4,8 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
+import subprocess
+import sys
 
 from app.core.config import settings
 from app.api.v1.api import api_router
@@ -17,21 +19,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def init_db():
-    try:
-        logger.info("📊 Creando tablas en la base de datos...")
-        # Base.metadata.create_all(bind=engine)
-        logger.info("✅ Tablas creadas exitosamente")
-    except Exception as e:
-        logger.error(f"❌ Error al crear tablas: {e}")
-        raise
-
 def check_db_connection() -> bool:
     try:
-        from app.db.session import SessionLocal
-        db = SessionLocal()
-        db.execute(text("SELECT 1"))
-        db.close()
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
         logger.info("✅ Conexión a base de datos exitosa")
         return True
     except Exception as e:
@@ -44,25 +35,34 @@ async def lifespan(app: FastAPI):
     logger.info(f"🔧 Environment: {settings.ENVIRONMENT}")
     logger.info(f"🗄️ Database: {settings.DATABASE_URL[:30]}...")
 
-    if not check_db_connection():
-        logger.error("❌ No se pudo conectar a la base de datos. Abortando inicio.")
-        raise Exception("Database connection failed")
+    try:
+        logger.info("🔄 Aplicando migraciones de base de datos con Alembic...")
+        result = subprocess.run(
+            [sys.executable, "-m", "alembic", "upgrade", "head"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if result.returncode == 0:
+            logger.info("✅ Migraciones aplicadas correctamente")
+        else:
+            logger.warning(f"⚠️ Alembic devolvió código {result.returncode}: {result.stdout + result.stderr}")
+    except Exception as e:
+        logger.error(f"❌ Error ejecutando Alembic: {e}")
 
-    init_db()
-    logger.info("✅ Aplicación iniciada correctamente")
+    if not check_db_connection():
+        logger.critical("No se pudo conectar a la base de datos. El servicio continuará, pero puede fallar.")
+    
     yield
-    logger.info("👋 Cerrando aplicación...")
+
+    logger.info("🛑 Apagando la aplicación")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description=settings.DESCRIPTION,
     version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json" if settings.DEBUG else None,
-    docs_url="/docs" if settings.DEBUG else None,
-    redoc_url="/redoc" if settings.DEBUG else None,
+    description=settings.DESCRIPTION,
     lifespan=lifespan
 )
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
@@ -70,24 +70,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-if settings.is_production:
-    app.add_middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=[
-            "*.railway.app",
-            "*.up.railway.app",
-            "ethernity-dao.com",
-            "www.ethernity-dao.com",
-            "localhost"
-        ]
-    )
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=[
+        "*.railway.app",
+        "*.up.railway.app",
+        "ethernity-dao.com",
+        "www.ethernity-dao.com",
+        "localhost",
+        "127.0.0.1"
+    ]
+)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     logger.error(f"❌ Unhandled exception: {exc}", exc_info=True)
     detail = str(exc) if settings.DEBUG else "Internal server error"
-    
     return JSONResponse(
         status_code=500,
         content={
@@ -113,7 +111,6 @@ async def root():
 @app.get("/health")
 async def health_check():
     db_status = "connected" if check_db_connection() else "disconnected"
-    
     return {
         "status": "healthy" if db_status == "connected" else "unhealthy",
         "database": db_status,
@@ -124,7 +121,6 @@ async def health_check():
 
 @app.get("/api/stats")
 async def get_stats():
-
     return {
         "total_users": 0,
         "total_contributions": 0,
