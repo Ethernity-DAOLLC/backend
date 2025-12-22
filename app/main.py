@@ -4,14 +4,12 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
-import subprocess
-import sys
-import os
 from sqlalchemy import text
 
 from app.core.config import settings
 from app.api.v1.api import api_router
-from app.db.session import engine
+from app.db.session import engine, check_db_connection  # Usa la función existente
+from app.db.base import Base
 
 logging.basicConfig(
     level=settings.LOG_LEVEL,
@@ -19,44 +17,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def check_db_connection() -> bool:
-    try:
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
-        return True
-    except Exception as e:
-        logger.debug(f"DB check failed (normal en startup): {e}")
-        return False
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info(f"🚀 Starting {settings.PROJECT_NAME} v{settings.VERSION}")
-    def run_migrations():
-        try:
-            logger.info("🔄 Running Alembic migrations...")
-            result = subprocess.run(
-                [sys.executable, "-m", "alembic", "upgrade", "head"],
-                capture_output=True,
-                text=True,
-                timeout=60
-            )
-            if result.returncode == 0:
-                logger.info("✅ Migrations OK")
-            else:
-                logger.warning(f"⚠️ Migration warning: {result.stderr}")
-        except subprocess.TimeoutExpired:
-            logger.error("❌ Migration timeout - continuing anyway")
-        except Exception as e:
-            logger.error(f"❌ Migration error: {e}")
+    logger.info(f"🚀 Iniciando {settings.PROJECT_NAME} v{settings.VERSION}")
+    logger.info(f"🔧 Environment: {settings.ENVIRONMENT}")
 
-    import threading
-    migration_thread = threading.Thread(target=run_migrations, daemon=True)
-    migration_thread.start()
-    logger.info("✅ App ready for healthcheck")
+    if not check_db_connection():
+        logger.critical("❌ NO SE PUDO CONECTAR A LA BASE DE DATOS")
+        logger.info("💡 Para Railway: Verifica DATABASE_URL en Variables del servicio")
+    else:
+        logger.info("✅ Base de datos conectada")
+    if settings.ENVIRONMENT == "development":
+        logger.info("🔄 Creando tablas automáticamente (dev mode)")
+        Base.metadata.create_all(bind=engine)
+    else:
+        logger.info("🔄 PROD: Asumiendo migraciones Alembic aplicadas manualmente")
     
     yield
 
-    logger.info("🛑 Shutting down")
+    logger.info("🛑 Apagando aplicación")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -71,50 +50,46 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=[
         "*.railway.app",
-        "*.up.railway.app",
         "localhost",
         "127.0.0.1"
     ]
 )
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    logger.error(f"❌ Unhandled: {exc}", exc_info=True)
+    logger.error(f"❌ Error no manejado: {exc}", exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal server error"}
+        content={"detail": "Internal server error" if not settings.DEBUG else str(exc)}
     )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-@app.get("/", tags=["root"])
+@app.get("/", status_code=200)
 async def root():
+    db_ok = check_db_connection()
     return {
-        "status": "ok",
-        "message": "Ethernity DAO Backend running",
-        "version": settings.VERSION,
-        "environment": settings.ENVIRONMENT
+        "status": "healthy" if db_ok else "unhealthy - DB failed",
+        "message": f"{settings.PROJECT_NAME} v{settings.VERSION}",
+        "environment": settings.ENVIRONMENT,
+        "database": "connected" if db_ok else "disconnected",
+        "endpoints": f"{settings.API_V1_STR}/health",
+        "docs": f"{settings.API_V1_STR}/docs" if settings.DEBUG else "disabled"
     }
 
-@app.get("/health", tags=["health"])
+@app.get("/health", status_code=200)
 async def health():
     db_ok = check_db_connection()
     return {
         "status": "healthy" if db_ok else "unhealthy",
-        "database": "connected" if db_ok else "initializing",
-        "version": settings.VERSION,
-        "timestamp": "ok"
-    }
-
-@app.get("/api/stats")
-async def api_stats():
-    return {
-        "status": "ok",
-        "total_users": 0,
-        "total_requests": 0,
+        "database": "connected" if db_ok else "disconnected",
         "uptime": "ok"
     }
+
+@app.get("/ready", status_code=200)
+async def ready():
+    return {"status": "ready"}
