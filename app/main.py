@@ -106,7 +106,6 @@ app.add_middleware(
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    """Manejo global de excepciones no capturadas"""
     logger.error(
         f"❌ Unhandled exception: {type(exc).__name__}: {exc}",
         exc_info=True,
