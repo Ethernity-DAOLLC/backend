@@ -1,4 +1,3 @@
-# app/main.py - Versión FINAL para Railway (healthcheck instantáneo)
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -16,14 +15,12 @@ from sqlalchemy import text
 logging.basicConfig(level=settings.LOG_LEVEL)
 logger = logging.getLogger(__name__)
 
-# Crear la app SIN lifespan bloqueante
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     description=settings.DESCRIPTION
 )
 
-# Middlewares primero (responden rápido)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
@@ -37,7 +34,6 @@ app.add_middleware(
     allowed_hosts=["*.railway.app", "*.up.railway.app", "localhost", "127.0.0.1"]
 )
 
-# Endpoint root y health que responden INMEDIATAMENTE
 @app.get("/", tags=["root"])
 async def root():
     return {"status": "ok", "message": "Backend running", "version": settings.VERSION}
@@ -46,16 +42,13 @@ async def root():
 async def health():
     return {"status": "healthy", "version": settings.VERSION}
 
-# Exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled error: {exc}", exc_info=True)
     return JSONResponse(status_code=500, content={"detail": "Internal error"})
 
-# Incluir router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-# === MIGRACIONES EN BACKGROUND AL INICIAR ===
 def run_migrations():
     logger.info("Starting background migrations...")
     try:
@@ -71,8 +64,6 @@ def run_migrations():
             logger.warning(f"Non-critical migration warning: {result.stderr}")
     except Exception as e:
         logger.error(f"Migration failed (non-critical): {e}")
-
-# Ejecutar migraciones en thread separado al inicio del módulo
 threading.Thread(target=run_migrations, daemon=True).start()
 
 logger.info("App initialized - ready for requests")
