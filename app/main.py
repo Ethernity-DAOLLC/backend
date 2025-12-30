@@ -20,10 +20,15 @@ app = FastAPI(
     version=settings.VERSION,
     description=settings.DESCRIPTION
 )
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origins=[
+        "https://www.ethernity-dao.com",
+        "https://ethernity-dao.com",
+        "http://localhost:5173",
+        "http://localhost:3000",
+        *settings.BACKEND_CORS_ORIGINS
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,7 +36,13 @@ app.add_middleware(
 
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["*.railway.app", "*.up.railway.app", "localhost", "127.0.0.1"]
+    allowed_hosts=[
+        "*.railway.app", 
+        "*.up.railway.app", 
+        "*.onrender.com",
+        "localhost", 
+        "127.0.0.1"
+    ]
 )
 
 @app.get("/", tags=["root"])
@@ -46,7 +57,6 @@ async def health():
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled error: {exc}", exc_info=True)
     return JSONResponse(status_code=500, content={"detail": "Internal error"})
-
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 def run_migrations():
@@ -65,5 +75,4 @@ def run_migrations():
     except Exception as e:
         logger.error(f"Migration failed (non-critical): {e}")
 threading.Thread(target=run_migrations, daemon=True).start()
-
 logger.info("App initialized - ready for requests")
