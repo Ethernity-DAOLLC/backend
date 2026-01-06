@@ -4,6 +4,8 @@ from app.api.v1.endpoints.contact import router as contact_router
 from app.api.v1.endpoints.users import router as users_router
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.stats import router as stats_router
+from app.api.v1.endpoints.survey import router as survey_router
+
 api_router = APIRouter()
 
 @api_router.get("/health")
@@ -35,5 +37,11 @@ api_router.include_router(
     stats_router,
     prefix="/stats",
     tags=["admin-stats"]
+)
+
+api_router.include_router(
+    survey_router,
+    prefix="/survey",
+    tags=["survey"]
 )
 

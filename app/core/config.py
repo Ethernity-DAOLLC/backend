@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 20
 
+    SUPABASE_URL: str
+    SUPABASE_SERVICE_KEY: str
+    SUPABASE_ANON_KEY: Optional[str] = None
+
     BACKEND_CORS_ORIGINS: Union[List[str], str] = Field(
         default=[
             "http://localhost:3000",
@@ -30,7 +34,6 @@ class Settings(BaseSettings):
         ]
     )
     FRONTEND_URL: str = "https://www.ethernity-dao.com"
-
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
@@ -38,19 +41,15 @@ class Settings(BaseSettings):
     ADMIN_TOKEN: str
     ACTIVE_NETWORK: str = "arbitrum-sepolia"
     EMAIL_FROM: str = "noreply@ethernity-dao.com"
- 
     SMTP_HOST: Optional[str] = None
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
     SMTP_TLS: bool = True
-
     SENDGRID_API_KEY: Optional[str] = None
-
     ADMIN_EMAIL: Optional[str] = None
     ADMIN_EMAILS: List[str] = Field(default_factory=lambda: ["admin@ethernity-dao.com"])
     LOG_LEVEL: str = "INFO"
-
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -90,7 +89,6 @@ class Settings(BaseSettings):
                 origins = [origin.strip() for origin in v.split(',')]
                 return [o for o in origins if o]
             return [v]
-
         logger.warning(f"Unexpected CORS type: {type(v)}. Using defaults.")
         return [
             "http://localhost:3000",
@@ -112,7 +110,6 @@ class Settings(BaseSettings):
             if ',' in v:
                 return [email.strip() for email in v.split(',') if email.strip()]
             return [v.strip()] if v.strip() else ["admin@ethernity-dao.com"]
-        
         return ["admin@ethernity-dao.com"]
 
     @property
@@ -163,5 +160,4 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
-
 settings = get_settings()
