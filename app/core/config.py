@@ -16,9 +16,13 @@ class Settings(BaseSettings):
     DESCRIPTION: str = "API para gestión de fondo de retiro en blockchain"
     ENVIRONMENT: str = "development"
     DEBUG: bool = False
+
+    DATABASE_URL: str
+
     SUPABASE_URL: str
     SUPABASE_SERVICE_KEY: str
     SUPABASE_ANON_KEY: Optional[str] = None
+
     BACKEND_CORS_ORIGINS: Union[List[str], str] = Field(
         default=[
             "http://localhost:3000",
@@ -28,6 +32,7 @@ class Settings(BaseSettings):
         ]
     )
     FRONTEND_URL: str = "https://www.ethernity-dao.com"
+
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
@@ -35,12 +40,15 @@ class Settings(BaseSettings):
     ADMIN_TOKEN: str
     ACTIVE_NETWORK: str = "arbitrum-sepolia"
     EMAIL_FROM: str = "noreply@ethernity-dao.com"
+ 
     SMTP_HOST: Optional[str] = None
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
     SMTP_TLS: bool = True
+
     SENDGRID_API_KEY: Optional[str] = None
+
     ADMIN_EMAIL: Optional[str] = None
     ADMIN_EMAILS: List[str] = Field(default_factory=lambda: ["admin@ethernity-dao.com"])
     LOG_LEVEL: str = "INFO"
@@ -106,7 +114,17 @@ class Settings(BaseSettings):
             if ',' in v:
                 return [email.strip() for email in v.split(',') if email.strip()]
             return [v.strip()] if v.strip() else ["admin@ethernity-dao.com"]
+        
         return ["admin@ethernity-dao.com"]
+
+    @property
+    def database_url_sync(self) -> str:
+        url = self.DATABASE_URL
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+psycopg://", 1)
+        elif url.startswith("postgres://"):
+            return url.replace("postgres://", "postgresql+psycopg://", 1)
+        return url
 
     @property
     def is_production(self) -> bool:
@@ -147,5 +165,4 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
-
 settings = get_settings()
