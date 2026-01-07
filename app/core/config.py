@@ -18,7 +18,10 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     DATABASE_URL: str
+    DB_POOL_SIZE: int = 10
+    DB_MAX_OVERFLOW: int = 20
 
+    # Supabase Configuration
     SUPABASE_URL: str
     SUPABASE_SERVICE_KEY: str
     SUPABASE_ANON_KEY: Optional[str] = None
@@ -165,4 +168,5 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
+
 settings = get_settings()
