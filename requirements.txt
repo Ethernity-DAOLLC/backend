@@ -5,7 +5,7 @@ fastapi==0.115.0
 uvicorn[standard]==0.32.1
 
 # =============================================
-# DATABASE - Supabase (maneja sus propias dependencias)
+# DATABASE - Supabase 
 # =============================================
 sqlalchemy==2.0.44
 alembic==1.17.2
@@ -54,21 +54,26 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
 # =============================================
-# TESTING (Development)
+# TESTING - Solo si necesitas tests en CI/CD
+# Considera moverlos a requirements-dev.txt
 # =============================================
 pytest==8.3.4
 pytest-asyncio==0.24.0
 httpx==0.27.2
 
 # =============================================
-# CODE QUALITY
+# CODE QUALITY - COMENTADOS PARA PRODUCCIÓN
+# Estos paquetes NO son necesarios en producción
+# Moverlos a requirements-dev.txt
 # =============================================
-black==23.11.0
-flake8==6.1.0
-mypy==1.7.1
+# black==23.11.0
+# flake8==6.1.0
+# mypy==1.7.1
 
 # =============================================
-# DEVELOPMENT TOOLS
+# DEVELOPMENT TOOLS - COMENTADOS PARA PRODUCCIÓN
+# Estos paquetes causan problemas en Render
+# Moverlos a requirements-dev.txt
 # =============================================
-ipython==8.17.2
-watchfiles==0.21.0
+# ipython==8.17.2
+# watchfiles==0.21.0
