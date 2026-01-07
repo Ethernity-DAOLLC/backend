@@ -16,15 +16,9 @@ class Settings(BaseSettings):
     DESCRIPTION: str = "API para gestión de fondo de retiro en blockchain"
     ENVIRONMENT: str = "development"
     DEBUG: bool = False
-
-    DATABASE_URL: str
-    DB_POOL_SIZE: int = 10
-    DB_MAX_OVERFLOW: int = 20
-
     SUPABASE_URL: str
     SUPABASE_SERVICE_KEY: str
     SUPABASE_ANON_KEY: Optional[str] = None
-
     BACKEND_CORS_ORIGINS: Union[List[str], str] = Field(
         default=[
             "http://localhost:3000",
@@ -50,6 +44,7 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: Optional[str] = None
     ADMIN_EMAILS: List[str] = Field(default_factory=lambda: ["admin@ethernity-dao.com"])
     LOG_LEVEL: str = "INFO"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -89,6 +84,7 @@ class Settings(BaseSettings):
                 origins = [origin.strip() for origin in v.split(',')]
                 return [o for o in origins if o]
             return [v]
+
         logger.warning(f"Unexpected CORS type: {type(v)}. Using defaults.")
         return [
             "http://localhost:3000",
@@ -111,15 +107,6 @@ class Settings(BaseSettings):
                 return [email.strip() for email in v.split(',') if email.strip()]
             return [v.strip()] if v.strip() else ["admin@ethernity-dao.com"]
         return ["admin@ethernity-dao.com"]
-
-    @property
-    def database_url_sync(self) -> str:
-        url = self.DATABASE_URL
-        if url.startswith("postgresql://"):
-            return url.replace("postgresql://", "postgresql+psycopg://", 1)
-        elif url.startswith("postgres://"):
-            return url.replace("postgres://", "postgresql+psycopg://", 1)
-        return url
 
     @property
     def is_production(self) -> bool:
@@ -160,4 +147,5 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
+
 settings = get_settings()
