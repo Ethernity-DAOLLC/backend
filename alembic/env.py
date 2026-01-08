@@ -17,11 +17,8 @@ target_metadata = Base.metadata
 
 def get_url():
     url = settings.DATABASE_URL
-
-    if url.startswith("postgres://"):
-        url = url.replace("postgres://", "postgresql+psycopg://", 1)
-    elif url.startswith("postgresql://"):
-        url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+    if url.startswith("postgres://") and not url.startswith("postgresql://"):
+        url = url.replace("postgres://", "postgresql://", 1)
     return url
 
 def run_migrations_offline() -> None:
@@ -36,13 +33,16 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 def run_migrations_online() -> None:
-    configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = get_url()
+    url = get_url()
+    configuration = {
+        'sqlalchemy.url': url,
+        'sqlalchemy.poolclass': pool.NullPool,
+    }
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
     )
+    
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
