@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, Dict
 
 class SurveyCreate(BaseModel):
-    age: str = Field(..., pattern="^(18-24|25-34|35-44|45-54|55-64|65\+)$")
+    age: str = Field(..., pattern=r"^(18-24|25-34|35-44|45-54|55-64|65\+)$")
     trust_traditional: int = Field(..., ge=-2, le=2)
     blockchain_familiarity: int = Field(..., ge=-2, le=2)
     retirement_concern: int = Field(..., ge=-2, le=2)

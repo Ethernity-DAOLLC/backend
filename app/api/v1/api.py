@@ -44,4 +44,3 @@ api_router.include_router(
     prefix="/survey",
     tags=["survey"]
 )
-
