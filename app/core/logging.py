@@ -5,6 +5,9 @@ from pathlib import Path
 import json
 from datetime import datetime
 from typing import Any, Dict
+from app.core.config import Settings
+
+logger = logging.getLogger(__name__)
 
 class JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
@@ -22,7 +25,6 @@ class JSONFormatter(logging.Formatter):
         if hasattr(record, "extra"):
             log_data["extra"] = record.extra
         return json.dumps(log_data, ensure_ascii=False)
-
 
 def setup_logging(settings: Settings) -> None:
     root_logger = logging.getLogger()

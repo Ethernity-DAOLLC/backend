@@ -1,14 +1,19 @@
 from sqlalchemy.orm import Session
-from fastapi import Request, HTTPException, status
-from typing import Generator, Optional
+from fastapi import Request, HTTPException, status, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Generator, Optional, Dict, Any
 from collections import defaultdict
 from datetime import datetime, timedelta
 import logging
 
+from app.core.config import settings
+from app.core.database import db_manager
+from app.core.security import security_manager, security_scheme
+
 logger = logging.getLogger(__name__)
 
 def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
+    db = db_manager.get_session()
     try:
         yield db
     except Exception as e:
@@ -49,7 +54,7 @@ class RateLimiter:
         if forwarded:
             return forwarded.split(",")[0].strip()
         return request.client.host if request.client else "unknown"
-    
+
 rate_limiter = RateLimiter()
 
 def check_rate_limit(request: Request) -> None:

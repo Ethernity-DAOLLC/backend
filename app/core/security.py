@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any
 import secrets
 import hashlib
 
+from app.core.config import Settings, settings
 security_scheme = HTTPBearer()
 
 class SecurityManager:

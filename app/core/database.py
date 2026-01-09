@@ -4,6 +4,8 @@ from contextlib import contextmanager
 from typing import Generator
 import logging
 
+from app.core.config import Settings, settings
+
 logger = logging.getLogger(__name__)
 
 class DatabaseManager:

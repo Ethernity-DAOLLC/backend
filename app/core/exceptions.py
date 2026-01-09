@@ -4,6 +4,9 @@ from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from pydantic import ValidationError
 import logging
+import traceback
+
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
