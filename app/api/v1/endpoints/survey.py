@@ -5,6 +5,7 @@ from typing import List
 import logging
 
 from app.api.v1.deps import get_db
+from app.models.survey import Survey, SurveyFollowUp
 from app.schemas.survey import (
     SurveyCreate, 
     SurveyResponse, 
@@ -14,32 +15,6 @@ from app.schemas.survey import (
 )
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
-from app.db.base_class import Base
-
-class Survey(Base):
-    __tablename__ = "surveys"
-    id = Column(Integer, primary_key=True, index=True)
-    age = Column(String(10), nullable=False)
-    trust_traditional = Column(Integer, nullable=False)
-    blockchain_familiarity = Column(Integer, nullable=False)
-    retirement_concern = Column(Integer, nullable=False)
-    has_retirement_plan = Column(Integer, nullable=False)
-    values_in_retirement = Column(Integer, nullable=False)
-    interested_in_blockchain = Column(Integer, nullable=False)
-    ip_address = Column(String(45), nullable=True)
-    user_agent = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-
-class SurveyFollowUp(Base):
-    __tablename__ = "survey_follow_ups"
-    id = Column(Integer, primary_key=True, index=True)
-    wants_more_info = Column(Boolean, nullable=False)
-    email = Column(String(255), nullable=True)
-    ip_address = Column(String(45), nullable=True)
-    user_agent = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 @router.post("/", response_model=SurveyResponse, status_code=status.HTTP_201_CREATED)
 async def create_survey(
@@ -59,6 +34,7 @@ async def create_survey(
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent")
         )
+        
         db.add(db_survey)
         db.commit()
         db.refresh(db_survey)
@@ -86,12 +62,14 @@ async def create_follow_up(
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent")
         )
+        
         db.add(db_follow_up)
         db.commit()
         db.refresh(db_follow_up)
         logger.info(f"✅ Follow-up created: {db_follow_up.id}")
         if follow_up.wants_more_info and follow_up.email:
             logger.info(f"📧 User opted in: {follow_up.email}")
+        
         return db_follow_up
         
     except Exception as e:
@@ -114,7 +92,6 @@ async def get_surveys(
             .offset(offset)\
             .limit(limit)\
             .all()
-        
         logger.info(f"📊 Retrieved {len(surveys)} surveys")
         return surveys
         
@@ -128,6 +105,7 @@ async def get_surveys(
 async def get_survey_stats(db: Session = Depends(get_db)):
     try:
         total = db.query(Survey).count()
+        
         if total == 0:
             return {
                 "total_responses": 0,
@@ -139,7 +117,6 @@ async def get_survey_stats(db: Session = Depends(get_db)):
                     "low_interest": 0
                 }
             }
-        
         averages = {
             "trust_traditional": db.query(func.avg(Survey.trust_traditional)).scalar() or 0,
             "blockchain_familiarity": db.query(func.avg(Survey.blockchain_familiarity)).scalar() or 0,
@@ -148,6 +125,7 @@ async def get_survey_stats(db: Session = Depends(get_db)):
             "values_in_retirement": db.query(func.avg(Survey.values_in_retirement)).scalar() or 0,
             "interested_in_blockchain": db.query(func.avg(Survey.interested_in_blockchain)).scalar() or 0,
         }
+        
         averages = {k: round(float(v), 2) for k, v in averages.items()}
         age_dist = db.query(
             Survey.age,
@@ -177,7 +155,6 @@ async def get_survey_stats(db: Session = Depends(get_db)):
             detail=f"Error calculating stats: {str(e)}"
         )
 
-
 @router.get("/follow-ups", response_model=List[FollowUpResponse])
 async def get_follow_ups(
     limit: int = 100,
@@ -190,6 +167,7 @@ async def get_follow_ups(
             .offset(offset)\
             .limit(limit)\
             .all()
+        
         logger.info(f"📋 Retrieved {len(follow_ups)} follow-ups")
         return follow_ups
         
@@ -219,7 +197,6 @@ async def get_interested_emails(db: Session = Depends(get_db)):
             "total": len(emails),
             "emails": emails
         }
-        
     except Exception as e:
         logger.error(f"❌ Emails error: {e}", exc_info=True)
         raise HTTPException(
