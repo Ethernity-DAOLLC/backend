@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 import logging
@@ -39,7 +39,7 @@ def receive_connect(dbapi_conn, connection_record):
 def check_connection() -> bool:
     try:
         with engine.connect() as conn:
-            conn.execute("SELECT 1")
+            conn.execute(text("SELECT 1"))
         return True
     except Exception as e:
         logger.error(f"❌ Database connection failed: {e}")
