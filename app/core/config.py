@@ -46,7 +46,7 @@ class Settings(BaseSettings):
         default_factory=lambda: ["admin@ethernity-dao.com"]
     )
 
-    EMAIL_FROM: EmailStr = Field(default="noreply@ethernity-dao.com")
+    EMAIL_FROM: Optional[EmailStr] = Field(default=None)
     EMAIL_FROM_NAME: str = Field(default="Ethernity DAO")
     SMTP_HOST: Optional[str] = None
     SMTP_PORT: int = Field(default=587, ge=1, le=65535)
