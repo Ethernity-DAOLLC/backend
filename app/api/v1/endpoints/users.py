@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 import logging
 
-from app.api.v1.deps import get_db, get_current_admin
+from app.api.deps import get_db, get_current_admin, get_client_info
 from app.schemas.user import (
     EmailAssociation,
     UserResponse,
@@ -11,50 +11,36 @@ from app.schemas.user import (
     UserCreate,
     UserUpdate
 )
-from app.services.user_service import UserService
+from app.services.user_service import user_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
 
 @router.post(
     "/email",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Associate email with wallet",
-    description="Associate an email address with a wallet address. Creates user if doesn't exist."
+    summary="Associate email with wallet"
 )
 async def associate_email(
     data: EmailAssociation,
-    request: Request,
     db: Session = Depends(get_db)
 ):
     try:
-        user = UserService.associate_email(
+        user = user_service.associate_email(
             db=db,
             wallet_address=data.address,
             email=data.email,
             accepts_marketing=data.accepts_marketing,
             accepts_notifications=data.accepts_notifications
         )
-        
-        logger.info(f"✅ Email asociado: {data.address} -> {data.email}")
-        
         return user
         
     except ValueError as e:
-        logger.warning(f"⚠️ Error de validación: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-    except Exception as e:
-        logger.error(f"❌ Error asociando email: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error al asociar el email"
-        )
-
 
 @router.post(
     "/register",
@@ -68,12 +54,8 @@ async def register_user(
     db: Session = Depends(get_db)
 ):
     try:
-        if not user_data.ip_address:
-            user_data.ip_address = request.client.host if request.client else None
-        if not user_data.user_agent:
-            user_data.user_agent = request.headers.get("user-agent")
-        
-        user = UserService.create_user(db, user_data)
+        client_info = get_client_info(request)
+        user = user_service.create_user(db, user_data, client_info)
         return user
         
     except ValueError as e:
@@ -81,13 +63,6 @@ async def register_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-    except Exception as e:
-        logger.error(f"❌ Error registrando usuario: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error al registrar usuario"
-        )
-
 
 @router.get(
     "/wallet/{wallet_address}",
@@ -98,14 +73,15 @@ async def get_user_by_wallet(
     wallet_address: str,
     db: Session = Depends(get_db)
 ):
-    user = UserService.get_by_wallet(db, wallet_address)
+    user = user_service.get_by_wallet(db, wallet_address)
+    
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
+            detail="User not found"
         )
+    
     return user
-
 
 @router.post(
     "/login/{wallet_address}",
@@ -116,12 +92,13 @@ async def user_login(
     wallet_address: str,
     db: Session = Depends(get_db)
 ):
-    user = UserService.update_last_login(db, wallet_address)
+    user = user_service.update_last_login(db, wallet_address)
     if not user:
-        user = UserService.create_user(
+        user = user_service.create_user(
             db,
             UserCreate(wallet_address=wallet_address)
         )
+    
     return user
 
 @router.get(
@@ -135,8 +112,7 @@ async def get_all_users(
     limit: int = 100,
     db: Session = Depends(get_db)
 ):
-    return UserService.get_all_users(db, skip, limit)
-
+    return user_service.get_all_users(db, skip, limit)
 
 @router.get(
     "/mailing-list",
@@ -149,12 +125,11 @@ async def get_mailing_list(
     email_verified: bool = False,
     db: Session = Depends(get_db)
 ):
-    return UserService.get_users_for_mailing(
+    return user_service.get_users_for_mailing(
         db,
         accepts_marketing=accepts_marketing,
         email_verified=email_verified
     )
-
 
 @router.get(
     "/search",
@@ -168,8 +143,7 @@ async def search_users(
     limit: int = 50,
     db: Session = Depends(get_db)
 ):
-    return UserService.search_users(db, q, skip, limit)
-
+    return user_service.search_users(db, q, skip, limit)
 
 @router.patch(
     "/{user_id}",
@@ -182,10 +156,11 @@ async def update_user(
     user_update: UserUpdate,
     db: Session = Depends(get_db)
 ):
-    user = UserService.update_user(db, user_id, user_update)
+    user = user_service.update_user(db, user_id, user_update)
+    
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
+            detail="User not found"
         )
     return user

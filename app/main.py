@@ -1,82 +1,131 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 import logging
 
 from app.core.config import settings
+from app.core.logging import setup_logging
+from app.core.database import db_manager
+from app.core.middleware import (
+    RequestLoggingMiddleware,
+    SecurityHeadersMiddleware,
+    RateLimitMiddleware,
+)
+from app.core.exceptions import (
+    AppException,
+    app_exception_handler,
+    validation_exception_handler,
+    http_exception_handler,
+    database_exception_handler,
+    generic_exception_handler,
+)
+from app.api.deps import rate_limiter
 from app.api.v1.api import api_router
 
-logging.basicConfig(level=settings.LOG_LEVEL)
+setup_logging(settings)
 logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("🚀 Starting application...")
+    settings.log_config()
+
+    if db_manager.check_connection():
+        logger.info("✅ Database connection successful")
+    else:
+        logger.error("❌ Database connection failed")
+    if settings.SENTRY_DSN:
+        import sentry_sdk
+        sentry_sdk.init(
+            dsn=settings.SENTRY_DSN,
+            environment=settings.ENVIRONMENT,
+            traces_sample_rate=1.0 if settings.is_development else 0.1,
+        )
+        logger.info("📊 Sentry initialized")
+    
+    yield
+    logger.info("🛑 Shutting down application...")
+    db_manager.close()
+    logger.info("👋 Shutdown complete")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description=settings.DESCRIPTION
+    description=settings.DESCRIPTION,
+    docs_url="/docs" if not settings.is_production else None,
+    redoc_url="/redoc" if not settings.is_production else None,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://www.ethernity-dao.com",
-        "https://ethernity-dao.com",
-
-        "https://www.ethernity-dao.xyz",
-        "https://ethernity-dao.xyz",
-
-        "http://localhost:5173",
-        "http://localhost:3000",
-
-        *settings.BACKEND_CORS_ORIGINS
-    ],
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-)
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=[
-        "*.onrender.com",
-        "backend-m6vc.onrender.com",
-
-        "*.ethernity-dao.com",
-        "*.ethernity-dao.xyz",
-        "ethernity-dao.com",
-        "ethernity-dao.xyz",
-
-        "*.railway.app", 
-        "*.up.railway.app",
-
-        "localhost", 
-        "127.0.0.1"
-    ]
+    expose_headers=["X-Process-Time"],
+    max_age=600,
 )
 
-@app.get("/", tags=["root"])
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware, rate_limiter=rate_limiter)
+
+if settings.is_development or settings.DEBUG:
+    app.add_middleware(RequestLoggingMiddleware)
+
+app.add_exception_handler(AppException, app_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(SQLAlchemyError, database_exception_handler)
+app.add_exception_handler(Exception, generic_exception_handler)
+@app.get("/")
 async def root():
     return {
-        "status": "ok", 
-        "message": "Ethernity DAO Backend API", 
+        "message": f"Welcome to {settings.PROJECT_NAME}",
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT,
-        "docs": "/docs"
+        "docs": "/docs" if not settings.is_production else "disabled",
     }
 
-@app.get("/health", tags=["health"])
-async def health():
+@app.get("/health")
+async def health_check():
+    db_healthy = db_manager.check_connection()
+    
     return {
-        "status": "healthy", 
+        "status": "healthy" if db_healthy else "unhealthy",
         "version": settings.VERSION,
-        "environment": settings.ENVIRONMENT
+        "environment": settings.ENVIRONMENT,
+        "database": "connected" if db_healthy else "disconnected",
+        "email": "enabled" if settings.email_enabled else "disabled",
     }
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled error: {exc}", exc_info=True)
-    return JSONResponse(
-        status_code=500, 
-        content={"detail": "Internal server error"}
-    )
-app.include_router(api_router, prefix=settings.API_V1_STR)
-logger.info(f"🚀 App initialized - {settings.ENVIRONMENT} mode - v{settings.VERSION}")
+app.include_router(
+    api_router,
+    prefix=settings.API_V1_STR
+)
+
+if settings.is_development:
+    @app.get("/debug/config")
+    async def debug_config():
+        return {
+            "environment": settings.ENVIRONMENT,
+            "debug": settings.DEBUG,
+            "database": "connected" if db_manager.check_connection() else "disconnected",
+            "email_enabled": settings.email_enabled,
+            "cors_origins": settings.BACKEND_CORS_ORIGINS,
+            "rate_limit_enabled": settings.RATE_LIMIT_ENABLED,
+        }
+    
+    @app.get("/debug/db-pool")
+    async def debug_db_pool():
+        pool = db_manager.engine.pool
+        return {
+            "size": pool.size(),
+            "checked_in": pool.checkedin(),
+            "checked_out": pool.checkedout(),
+            "overflow": pool.overflow(),
+        }

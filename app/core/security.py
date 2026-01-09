@@ -1,15 +1,40 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from app.core.config import settings
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any
+import secrets
+import hashlib
 
-security = HTTPBearer()
+security_scheme = HTTPBearer()
 
-def verify_admin_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    if token != settings.ADMIN_TOKEN:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return {"role": "admin"}
+class SecurityManager:
+    def __init__(self, settings: Settings):
+        self.settings = settings
+    
+    def verify_admin_token(
+        self,
+        credentials: HTTPAuthorizationCredentials = Depends(security_scheme)
+    ) -> Dict[str, Any]:
+        token = credentials.credentials
+        if not secrets.compare_digest(token, self.settings.ADMIN_TOKEN):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        return {
+            "role": "admin",
+            "authenticated": True,
+            "timestamp": datetime.utcnow()
+        }
+    
+    @staticmethod
+    def hash_ip(ip: str) -> str:
+        return hashlib.sha256(ip.encode()).hexdigest()[:16]
+    
+    @staticmethod
+    def generate_token(length: int = 32) -> str:
+        return secrets.token_urlsafe(length)
+
+security_manager = SecurityManager(settings)

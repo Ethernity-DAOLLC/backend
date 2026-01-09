@@ -1,111 +1,49 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from typing import List, Dict, Optional
+from sqlalchemy import func, desc
+from typing import List, Optional
+import logging
+
 from app.models.survey import Survey, SurveyFollowUp
 from app.schemas.survey import SurveyCreate, FollowUpCreate
-import logging
+from app.services.base_service import BaseService
 
 logger = logging.getLogger(__name__)
 
-class SurveyService:
-    @staticmethod
-    def create_survey(db: Session, survey: SurveyCreate) -> Survey:
-        db_survey = Survey(
-            age=survey.age,
-            trust_traditional=survey.trust_traditional,
-            blockchain_familiarity=survey.blockchain_familiarity,
-            retirement_concern=survey.retirement_concern,
-            has_retirement_plan=survey.has_retirement_plan,
-            values_in_retirement=survey.values_in_retirement,
-            interested_in_blockchain=survey.interested_in_blockchain,
-            ip_address=survey.ip_address,
-            user_agent=survey.user_agent
-        )
+class SurveyService(BaseService[Survey]):
+    def __init__(self):
+        super().__init__(Survey)
+    
+    def create_survey(
+        self,
+        db: Session,
+        survey_in: SurveyCreate,
+        client_info: dict = None
+    ) -> Survey:
+        survey_data = survey_in.model_dump()
         
-        try:
-            db.add(db_survey)
-            db.commit()
-            db.refresh(db_survey)
-            logger.info(f"✅ Survey created: ID={db_survey.id}")
-            return db_survey
-        except Exception as e:
-            db.rollback()
-            logger.error(f"❌ Error creating survey: {e}")
-            raise
-
-    @staticmethod
-    def create_follow_up(db: Session, follow_up: FollowUpCreate) -> SurveyFollowUp:
-        db_follow_up = SurveyFollowUp(
-            wants_more_info=follow_up.wants_more_info,
-            email=follow_up.email,
-            ip_address=follow_up.ip_address,
-            user_agent=follow_up.user_agent
-        )
+        if client_info:
+            survey_data.update(client_info)
+        survey = Survey(**survey_data)
+        db.add(survey)
+        db.commit()
+        db.refresh(survey)
         
-        try:
-            db.add(db_follow_up)
-            db.commit()
-            db.refresh(db_follow_up)
-            
-            if follow_up.wants_more_info and follow_up.email:
-                logger.info(f"📧 New email for mailing list: {follow_up.email}")
-            logger.info(f"✅ Follow-up created: ID={db_follow_up.id}")
-            return db_follow_up
-        except Exception as e:
-            db.rollback()
-            logger.error(f"❌ Error creating follow-up: {e}")
-            raise
-
-    @staticmethod
-    def get_surveys(
-        db: Session, 
-        skip: int = 0, 
+        logger.info(f"📊 Survey created: {survey.id}")
+        return survey
+    
+    def get_all_surveys(
+        self,
+        db: Session,
+        skip: int = 0,
         limit: int = 100
     ) -> List[Survey]:
         return db.query(Survey)\
-            .order_by(Survey.created_at.desc())\
+            .order_by(desc(Survey.created_at))\
             .offset(skip)\
             .limit(limit)\
             .all()
-
-    @staticmethod
-    def get_survey_by_id(db: Session, survey_id: int) -> Optional[Survey]:
-        return db.query(Survey).filter(Survey.id == survey_id).first()
-
-    @staticmethod
-    def get_follow_ups(
-        db: Session, 
-        skip: int = 0, 
-        limit: int = 100
-    ) -> List[SurveyFollowUp]:
-        return db.query(SurveyFollowUp)\
-            .order_by(SurveyFollowUp.created_at.desc())\
-            .offset(skip)\
-            .limit(limit)\
-            .all()
-
-    @staticmethod
-    def get_interested_emails(db: Session) -> List[Dict[str, str]]:
-        results = db.query(
-            SurveyFollowUp.email, 
-            SurveyFollowUp.created_at
-        ).filter(
-            SurveyFollowUp.wants_more_info == True,
-            SurveyFollowUp.email.isnot(None)
-        ).order_by(
-            SurveyFollowUp.created_at.desc()
-        ).all()
-        
-        return [
-            {
-                "email": email, 
-                "created_at": created_at.isoformat()
-            } 
-            for email, created_at in results
-        ]
-
-    @staticmethod
-    def get_survey_stats(db: Session) -> Dict:
+    
+    def get_stats(self, db: Session) -> dict:
         total = db.query(Survey).count()
         
         if total == 0:
@@ -120,29 +58,25 @@ class SurveyService:
                 }
             }
 
-        fields = [
-            'trust_traditional',
-            'blockchain_familiarity',
-            'retirement_concern',
-            'has_retirement_plan',
-            'values_in_retirement',
-            'interested_in_blockchain'
-        ]
+        averages = {
+            "trust_traditional": db.query(func.avg(Survey.trust_traditional)).scalar() or 0,
+            "blockchain_familiarity": db.query(func.avg(Survey.blockchain_familiarity)).scalar() or 0,
+            "retirement_concern": db.query(func.avg(Survey.retirement_concern)).scalar() or 0,
+            "has_retirement_plan": db.query(func.avg(Survey.has_retirement_plan)).scalar() or 0,
+            "values_in_retirement": db.query(func.avg(Survey.values_in_retirement)).scalar() or 0,
+            "interested_in_blockchain": db.query(func.avg(Survey.interested_in_blockchain)).scalar() or 0,
+        }
         
-        averages = {}
-        for field in fields:
-            avg = db.query(func.avg(getattr(Survey, field))).scalar()
-            averages[field] = round(float(avg), 2) if avg else 0.0
+        averages = {k: round(float(v), 2) for k, v in averages.items()}
         age_dist = db.query(
-            Survey.age, 
-            func.count(Survey.id)
+            Survey.age,
+            func.count(Survey.id).label('count')
         ).group_by(Survey.age).all()
-        
         age_distribution = {age: count for age, count in age_dist}
         high = db.query(Survey).filter(Survey.interested_in_blockchain >= 1).count()
         moderate = db.query(Survey).filter(Survey.interested_in_blockchain == 0).count()
-        low = db.query(Survey).filter(Survey.interested_in_blockchain <= -1).count()
-
+        low = db.query(Survey).filter(Survey.interested_in_blockchain < 0).count()
+        
         return {
             "total_responses": total,
             "averages": averages,
@@ -154,24 +88,53 @@ class SurveyService:
             }
         }
 
-    @staticmethod
-    def delete_survey(db: Session, survey_id: int) -> bool:
-        survey = db.query(Survey).filter(Survey.id == survey_id).first()
-        if survey:
-            db.delete(survey)
-            db.commit()
-            logger.info(f"🗑️ Survey deleted: ID={survey_id}")
-            return True
-        return False
+class FollowUpService(BaseService[SurveyFollowUp]):
+    def __init__(self):
+        super().__init__(SurveyFollowUp)
+    
+    def create_follow_up(
+        self,
+        db: Session,
+        follow_up_in: FollowUpCreate,
+        client_info: dict = None
+    ) -> SurveyFollowUp:
+        follow_up_data = follow_up_in.model_dump()
+        
+        if client_info:
+            follow_up_data.update(client_info)
+        follow_up = SurveyFollowUp(**follow_up_data)
+        db.add(follow_up)
+        db.commit()
+        db.refresh(follow_up)
+        
+        logger.info(f"📋 Follow-up created: {follow_up.id}")
+        return follow_up
+    
+    def get_all_follow_ups(
+        self,
+        db: Session,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[SurveyFollowUp]:
+        return db.query(SurveyFollowUp)\
+            .order_by(desc(SurveyFollowUp.created_at))\
+            .offset(skip)\
+            .limit(limit)\
+            .all()
+    
+    def get_interested_emails(self, db: Session) -> List[dict]:
+        follow_ups = db.query(SurveyFollowUp)\
+            .filter(
+                SurveyFollowUp.wants_more_info == True,
+                SurveyFollowUp.email.isnot(None)
+            )\
+            .order_by(desc(SurveyFollowUp.created_at))\
+            .all()
+        
+        return [
+            {"email": f.email, "created_at": f.created_at.isoformat()}
+            for f in follow_ups
+        ]
 
-    @staticmethod
-    def delete_follow_up(db: Session, follow_up_id: int) -> bool:
-        follow_up = db.query(SurveyFollowUp).filter(
-            SurveyFollowUp.id == follow_up_id
-        ).first()
-        if follow_up:
-            db.delete(follow_up)
-            db.commit()
-            logger.info(f"🗑️ Follow-up deleted: ID={follow_up_id}")
-            return True
-        return False
+survey_service = SurveyService()
+follow_up_service = FollowUpService()

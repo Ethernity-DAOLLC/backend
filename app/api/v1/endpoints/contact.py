@@ -3,14 +3,15 @@ from sqlalchemy.orm import Session
 from typing import List
 import logging
 
-from app.api.v1.deps import get_db, get_current_admin
+from app.api.deps import get_db, get_current_admin, get_client_info
 from app.schemas.contact import (
     ContactCreate,
     ContactResponse,
     ContactAdmin,
-    ContactMarkRead
+    ContactMarkRead,
+    ContactStats
 )
-from app.services.contact_service import ContactService
+from app.services.contact_service import contact_service
 from app.tasks.contact_tasks import send_contact_emails, send_admin_reply_email
 
 router = APIRouter()
@@ -31,141 +32,118 @@ async def submit_contact(
     db: Session = Depends(get_db)
 ):
     try:
-        if not contact.ip_address:
-            contact.ip_address = request.client.host if request.client else None
-        
-        if not contact.user_agent:
-            contact.user_agent = request.headers.get("user-agent", None)
-        db_contact = ContactService.create_contact(db, contact)
-
+        client_info = get_client_info(request)
+        db_contact = contact_service.create_contact(db, contact, client_info)
         contact_data = {
             "id": db_contact.id,
             "name": db_contact.name,
             "email": db_contact.email,
             "subject": db_contact.subject,
             "message": db_contact.message,
-            "timestamp": db_contact.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "timestamp": db_contact.timestamp.isoformat(),
             "ip_address": db_contact.ip_address
         }
         background_tasks.add_task(send_contact_emails, contact_data)
-        
-        logger.info(f"✅ Contact message received from {contact.email}")
-        
         return db_contact
         
     except Exception as e:
-        logger.error(f"❌ Error submitting contact: {e}", exc_info=True)
+        logger.error(f"Error submitting contact: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error al enviar el mensaje de contacto"
+            detail="Error submitting contact message"
         )
-
 
 @router.get(
     "/messages",
     response_model=List[ContactAdmin],
     summary="Get all contact messages (Admin)",
-    description="Retrieve all contact messages - requires admin authentication"
+    dependencies=[Depends(get_current_admin)]
 )
 async def get_contact_messages(
     skip: int = 0,
     limit: int = 100,
     unread_only: bool = False,
-    db: Session = Depends(get_db),
-    _: dict = Depends(get_current_admin)
+    db: Session = Depends(get_db)
 ):
-    return ContactService.get_all_contacts(db, skip, limit, unread_only)
-
+    return contact_service.get_all(db, skip, limit, unread_only)
 
 @router.get(
     "/messages/{contact_id}",
     response_model=ContactAdmin,
-    summary="Get specific contact message"
+    summary="Get specific contact message",
+    dependencies=[Depends(get_current_admin)]
 )
 async def get_contact_message(
     contact_id: int,
-    db: Session = Depends(get_db),
-    _: dict = Depends(get_current_admin)
+    db: Session = Depends(get_db)
 ):
-
-    contact = ContactService.get_contact_by_id(db, contact_id)
+    contact = contact_service.get_by_id(db, contact_id)
     
     if not contact:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Mensaje de contacto no encontrado"
+            detail="Contact message not found"
         )
-    
     return contact
 
 @router.patch(
     "/messages/{contact_id}/read",
     response_model=ContactAdmin,
-    summary="Mark message as read/unread"
+    summary="Mark message as read/unread",
+    dependencies=[Depends(get_current_admin)]
 )
 async def mark_message_read(
     contact_id: int,
     data: ContactMarkRead,
-    db: Session = Depends(get_db),
-    _: dict = Depends(get_current_admin)
+    db: Session = Depends(get_db)
 ):
-
-    contact = ContactService.mark_as_read(db, contact_id, data.is_read)
+    contact = contact_service.mark_as_read(db, contact_id, data.is_read)
     
     if not contact:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Mensaje de contacto no encontrado"
+            detail="Contact message not found"
         )
-    
     return contact
-
 
 @router.delete(
     "/messages/{contact_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete contact message"
+    summary="Delete contact message",
+    dependencies=[Depends(get_current_admin)]
 )
 async def delete_contact_message(
     contact_id: int,
-    db: Session = Depends(get_db),
-    _: dict = Depends(get_current_admin)
+    db: Session = Depends(get_db)
 ):
-
-    deleted = ContactService.delete_contact(db, contact_id)
+    deleted = contact_service.delete_contact(db, contact_id)
     
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Mensaje de contacto no encontrado"
+            detail="Contact message not found"
         )
-    
-    return None
-
 
 @router.post(
     "/messages/{contact_id}/reply",
-    status_code=status.HTTP_200_OK,
     summary="Send manual reply to contact (Admin)",
-    description="Admin sends a manual reply to a contact message"
+    dependencies=[Depends(get_current_admin)]
 )
 async def reply_to_contact(
     contact_id: int,
     reply_content: str,
     admin_name: str,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-    _: dict = Depends(get_current_admin)
+    db: Session = Depends(get_db)
 ):
-
-    contact = ContactService.get_contact_by_id(db, contact_id)
+    contact = contact_service.get_by_id(db, contact_id)
     
     if not contact:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Mensaje de contacto no encontrado"
+            detail="Contact message not found"
         )
-
+    
     contact_data = {
         "id": contact.id,
         "name": contact.name,
@@ -173,41 +151,26 @@ async def reply_to_contact(
         "subject": contact.subject,
         "message": contact.message
     }
-
+    
     background_tasks.add_task(
         send_admin_reply_email,
         contact_data,
         reply_content,
         admin_name
     )
-
-    ContactService.mark_as_read(db, contact_id, True)
-    
-    logger.info(f"✅ Reply scheduled for contact {contact_id}")
+    contact_service.mark_as_read(db, contact_id, True)
     
     return {
-        "message": "Respuesta enviada correctamente",
+        "message": "Reply sent successfully",
         "contact_id": contact_id,
         "recipient": contact.email
     }
 
-
 @router.get(
     "/stats",
-    summary="Get contact statistics"
+    response_model=ContactStats,
+    summary="Get contact statistics",
+    dependencies=[Depends(get_current_admin)]
 )
-async def get_contact_stats(
-    db: Session = Depends(get_db),
-    _: dict = Depends(get_current_admin)
-):
-
-    total = len(ContactService.get_all_contacts(db, limit=10000))
-    unread = ContactService.get_unread_count(db)
-    recent = len(ContactService.get_recent_contacts(db, days=7))
-    
-    return {
-        "total_messages": total,
-        "unread_messages": unread,
-        "messages_last_7_days": recent,
-        "read_percentage": round((total - unread) / total * 100, 2) if total > 0 else 0
-    }
+async def get_contact_stats(db: Session = Depends(get_db)):
+    return contact_service.get_stats(db)

@@ -1,9 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import field_validator, Field
-from typing import List, Optional, Dict, Any, Union
+from pydantic import field_validator, Field, EmailStr
+from typing import List, Optional
 from functools import lru_cache
-from pathlib import Path
-import json
 import logging
 import os
 
@@ -11,159 +9,163 @@ logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
-    PROJECT_NAME: str = "Retirement Fund API"
+    PROJECT_NAME: str = "Ethernity DAO API"
     VERSION: str = "1.0.0"
     DESCRIPTION: str = "API para gestión de fondo de retiro en blockchain"
-    ENVIRONMENT: str = "development"
-    DEBUG: bool = False
 
-    DATABASE_URL: str
-    DB_POOL_SIZE: int = 10
-    DB_MAX_OVERFLOW: int = 20
+    ENVIRONMENT: str = Field(default="development")
+    DEBUG: bool = Field(default=False)
 
-    # Supabase Configuration
-    SUPABASE_URL: str
-    SUPABASE_SERVICE_KEY: str
-    SUPABASE_ANON_KEY: Optional[str] = None
+    DATABASE_URL: str = Field(..., description="PostgreSQL connection string")
+    DB_POOL_SIZE: int = Field(default=10, ge=1, le=50)
+    DB_MAX_OVERFLOW: int = Field(default=20, ge=0, le=100)
+    DB_POOL_PRE_PING: bool = Field(default=True)
+    DB_POOL_RECYCLE: int = Field(default=300, ge=60)
+    DB_ECHO: bool = Field(default=False)
 
-    BACKEND_CORS_ORIGINS: Union[List[str], str] = Field(
+    SUPABASE_URL: Optional[str] = Field(default=None)
+    SUPABASE_SERVICE_KEY: Optional[str] = Field(default=None)
+    SUPABASE_ANON_KEY: Optional[str] = Field(default=None)
+
+    BACKEND_CORS_ORIGINS: List[str] = Field(
         default=[
             "http://localhost:3000",
             "http://localhost:5173",
-            "https://www.ethernity-dao.com",
-            "https://ethernity-dao.com",
+            "http://localhost:5174",
         ]
     )
-    FRONTEND_URL: str = "https://www.ethernity-dao.com"
+    FRONTEND_URL: str = Field(default="http://localhost:5173")
+    SECRET_KEY: str = Field(..., min_length=32)
+    ALGORITHM: str = Field(default="HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, ge=5, le=1440)
 
-    SECRET_KEY: str
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    ADMIN_PASSWORD: str
-    ADMIN_TOKEN: str
-    ACTIVE_NETWORK: str = "arbitrum-sepolia"
-    EMAIL_FROM: str = "noreply@ethernity-dao.com"
- 
+    ADMIN_PASSWORD: str = Field(..., min_length=8)
+    ADMIN_TOKEN: str = Field(..., min_length=16)
+    ADMIN_EMAIL: EmailStr = Field(default="admin@ethernity-dao.com")
+    ADMIN_EMAILS: List[EmailStr] = Field(
+        default_factory=lambda: ["admin@ethernity-dao.com"]
+    )
+
+    EMAIL_FROM: EmailStr = Field(default="noreply@ethernity-dao.com")
+    EMAIL_FROM_NAME: str = Field(default="Ethernity DAO")
     SMTP_HOST: Optional[str] = None
-    SMTP_PORT: int = 587
+    SMTP_PORT: int = Field(default=587, ge=1, le=65535)
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
-    SMTP_TLS: bool = True
-
+    SMTP_TLS: bool = Field(default=True)
+    SMTP_SSL: bool = Field(default=False)
     SENDGRID_API_KEY: Optional[str] = None
 
-    ADMIN_EMAIL: Optional[str] = None
-    ADMIN_EMAILS: List[str] = Field(default_factory=lambda: ["admin@ethernity-dao.com"])
-    LOG_LEVEL: str = "INFO"
-
+    RATE_LIMIT_ENABLED: bool = Field(default=True)
+    RATE_LIMIT_PER_MINUTE: int = Field(default=60, ge=1)
+    RATE_LIMIT_PER_HOUR: int = Field(default=1000, ge=1)
+    LOG_LEVEL: str = Field(default="INFO")
+    LOG_FORMAT: str = Field(default="json")
+    ACTIVE_NETWORK: str = Field(default="arbitrum-sepolia")
+    SENTRY_DSN: Optional[str] = None
+    ENABLE_METRICS: bool = Field(default=False)
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
-        extra="allow",
+        extra="ignore",
+        validate_default=True,
     )
 
     @field_validator('BACKEND_CORS_ORIGINS', mode='before')
     @classmethod
-    def parse_cors_origins(cls, v):
-        if v is None:
-            return [
-                "http://localhost:3000",
-                "http://localhost:5173",
-                "https://www.ethernity-dao.com",
-                "https://ethernity-dao.com",
-            ]
-
+    def parse_cors_origins(cls, v) -> List[str]:
         if isinstance(v, list):
             return v
-
         if isinstance(v, str):
-            v = v.strip()
-
-            if not v or v == "*":
+            if v == "*":
+                logger.warning("⚠️ CORS set to '*' - not recommended for production")
                 return ["*"]
-
-            if v.startswith('['):
-                try:
-                    parsed = json.loads(v)
-                    if isinstance(parsed, list):
-                        return parsed
-                except json.JSONDecodeError:
-                    logger.warning(f"Failed to parse CORS as JSON: {v}")
-
             if ',' in v:
-                origins = [origin.strip() for origin in v.split(',')]
-                return [o for o in origins if o]
-            return [v]
-
-        logger.warning(f"Unexpected CORS type: {type(v)}. Using defaults.")
-        return [
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "https://www.ethernity-dao.com",
-            "https://ethernity-dao.com",
-        ]
-
+                return [origin.strip() for origin in v.split(',') if origin.strip()]
+            return [v.strip()] if v.strip() else []
+        return []
+    
     @field_validator('ADMIN_EMAILS', mode='before')
     @classmethod
-    def parse_admin_emails(cls, v):
-        if v is None:
-            return ["admin@ethernity-dao.com"]
-        
+    def parse_admin_emails(cls, v) -> List[str]:
         if isinstance(v, list):
             return v
         
         if isinstance(v, str):
             if ',' in v:
                 return [email.strip() for email in v.split(',') if email.strip()]
-            return [v.strip()] if v.strip() else ["admin@ethernity-dao.com"]
-        
-        return ["admin@ethernity-dao.com"]
+            return [v.strip()] if v.strip() else []
+        return []
+    
+    @field_validator('ENVIRONMENT')
+    @classmethod
+    def validate_environment(cls, v: str) -> str:
+        allowed = ['development', 'staging', 'production', 'testing']
+        if v not in allowed:
+            raise ValueError(f"ENVIRONMENT must be one of {allowed}")
+        return v
 
     @property
+    def database_url_async(self) -> str:
+        return self._convert_db_url("postgresql+asyncpg://")
+    
+    @property
     def database_url_sync(self) -> str:
+        return self._convert_db_url("postgresql+psycopg://")
+    
+    def _convert_db_url(self, prefix: str) -> str:
         url = self.DATABASE_URL
-        if url.startswith("postgresql://"):
-            return url.replace("postgresql://", "postgresql+psycopg://", 1)
-        elif url.startswith("postgres://"):
-            return url.replace("postgres://", "postgresql+psycopg://", 1)
-        return url
 
+        for old_prefix in ["postgresql://", "postgres://", 
+                          "postgresql+psycopg://", "postgresql+asyncpg://"]:
+            if url.startswith(old_prefix):
+                url = url.replace(old_prefix, "", 1)
+                break
+        result = f"{prefix}{url}"
+
+        if self.is_supabase and "sslmode=" not in result:
+            separator = "&" if "?" in result else "?"
+            result = f"{result}{separator}sslmode=require"
+        return result
+    
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT == "production"
-
+    
+    @property
+    def is_development(self) -> bool:
+        return self.ENVIRONMENT == "development"
+    
+    @property
+    def is_testing(self) -> bool:
+        return self.ENVIRONMENT == "testing"
+    
+    @property
+    def is_supabase(self) -> bool:
+        return "supabase" in self.DATABASE_URL.lower()
+    
     @property
     def email_enabled(self) -> bool:
-        has_smtp = bool(self.SMTP_HOST and self.SMTP_USER)
+        has_smtp = bool(self.SMTP_HOST and self.SMTP_USER and self.SMTP_PASSWORD)
         has_sendgrid = bool(self.SENDGRID_API_KEY)
         return has_smtp or has_sendgrid
-
-    def get_contracts_config(self) -> Dict[str, Any]:
-        contracts_file = Path(__file__).parent.parent / "config" / "contracts.json"
-        try:
-            with open(contracts_file, "r") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            logger.warning(f"Contracts file not found: {contracts_file}")
-            return {"networks": {}}
-
-    def get_network_config(self, network: Optional[str] = None) -> Dict[str, Any]:
-        network_name = network or self.ACTIVE_NETWORK
-        contracts_config = self.get_contracts_config()
-        return contracts_config.get("networks", {}).get(network_name, {})
-
-    def get_contract_address(self, contract_name: str, network: Optional[str] = None) -> str:
-        network_config = self.get_network_config(network)
-        return network_config.get("contracts", {}).get(contract_name, "")
-
-    def get_rpc_url(self, network: Optional[str] = None) -> str:
-        network_config = self.get_network_config(network)
-        return network_config.get("rpc", "")
-
-    def get_chain_id(self, network: Optional[str] = None) -> int:
-        network_config = self.get_network_config(network)
-        return network_config.get("chainId", 0)
+    
+    @property
+    def use_sendgrid(self) -> bool:
+        return bool(self.SENDGRID_API_KEY)
+    
+    def log_config(self) -> None:
+        logger.info("=" * 60)
+        logger.info(f"🚀 {self.PROJECT_NAME} v{self.VERSION}")
+        logger.info(f"📦 Environment: {self.ENVIRONMENT}")
+        logger.info(f"🔍 Debug: {self.DEBUG}")
+        logger.info(f"🗄️  Database: {'Supabase' if self.is_supabase else 'PostgreSQL'}")
+        logger.info(f"📧 Email: {'Enabled' if self.email_enabled else 'Disabled'}")
+        logger.info(f"🌐 CORS Origins: {len(self.BACKEND_CORS_ORIGINS)}")
+        logger.info(f"⚡ Rate Limiting: {'Enabled' if self.RATE_LIMIT_ENABLED else 'Disabled'}")
+        logger.info("=" * 60)
 
 @lru_cache()
 def get_settings() -> Settings:

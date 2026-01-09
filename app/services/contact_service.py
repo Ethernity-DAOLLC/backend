@@ -1,92 +1,115 @@
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from sqlalchemy import desc
 from datetime import datetime, timedelta
+from typing import List, Optional
 import logging
 
 from app.models.contact import Contact
-from app.schemas.contact import ContactCreate
+from app.schemas.contact import ContactCreate, ContactUpdate
+from app.services.base_service import BaseService
 
 logger = logging.getLogger(__name__)
 
-class ContactService:
+class ContactService(BaseService[Contact]):
+    def __init__(self):
+        super().__init__(Contact)
     
-    @staticmethod
-    def create_contact(db: Session, contact_data: ContactCreate) -> Contact:
-        try:
-            db_contact = Contact(
-                name=contact_data.name,
-                email=contact_data.email,
-                subject=contact_data.subject,
-                message=contact_data.message,
-                ip_address=contact_data.ip_address,
-                user_agent=contact_data.user_agent,
-                timestamp=datetime.utcnow(),
-                is_read=False
-            )
-            db.add(db_contact)
-            db.commit()
-            db.refresh(db_contact)
-            
-            logger.info(f"Contact message created: {contact_data.email} - {contact_data.subject}")
-            
-            return db_contact
-            
-        except Exception as e:
-            db.rollback()
-            logger.error(f"Error creating contact: {e}", exc_info=True)
-            raise
+    def create_contact(
+        self,
+        db: Session,
+        contact_in: ContactCreate,
+        client_info: dict = None
+    ) -> Contact:
+        contact_data = contact_in.model_dump()
+        if client_info:
+            contact_data.update(client_info)
+        
+        contact = Contact(**contact_data)
+        db.add(contact)
+        db.commit()
+        db.refresh(contact)
+        
+        logger.info(f"✅ Contact created: {contact.id} from {contact.email}")
+        return contact
     
-    @staticmethod
-    def get_all_contacts(
+    def get_all(
+        self,
         db: Session,
         skip: int = 0,
         limit: int = 100,
         unread_only: bool = False
     ) -> List[Contact]:
         query = db.query(Contact)
-        
         if unread_only:
             query = query.filter(Contact.is_read == False)
-        
-        return query.order_by(
-            Contact.timestamp.desc()
-        ).offset(skip).limit(limit).all()
+        return query.order_by(desc(Contact.timestamp)).offset(skip).limit(limit).all()
     
-    @staticmethod
-    def get_contact_by_id(db: Session, contact_id: int) -> Optional[Contact]:
+    def get_by_id(self, db: Session, contact_id: int) -> Optional[Contact]:
         return db.query(Contact).filter(Contact.id == contact_id).first()
     
-    @staticmethod
-    def mark_as_read(db: Session, contact_id: int, is_read: bool = True) -> Optional[Contact]:
-        contact = db.query(Contact).filter(Contact.id == contact_id).first()
+    def mark_as_read(
+        self,
+        db: Session,
+        contact_id: int,
+        is_read: bool = True
+    ) -> Optional[Contact]:
+        contact = self.get_by_id(db, contact_id)
         
-        if contact:
-            contact.is_read = is_read
-            db.commit()
-            db.refresh(contact)
-            logger.info(f"Contact {contact_id} marked as {'read' if is_read else 'unread'}")
+        if not contact:
+            return None
         
+        contact.is_read = is_read
+        contact.read_at = datetime.utcnow() if is_read else None
+        
+        db.commit()
+        db.refresh(contact)
+        
+        logger.info(f"📖 Contact {contact_id} marked as {'read' if is_read else 'unread'}")
         return contact
     
-    @staticmethod
-    def delete_contact(db: Session, contact_id: int) -> bool:
-        contact = db.query(Contact).filter(Contact.id == contact_id).first()
+    def delete_contact(self, db: Session, contact_id: int) -> bool:
+        contact = self.get_by_id(db, contact_id)
+        if not contact:
+            return False
         
-        if contact:
-            db.delete(contact)
-            db.commit()
-            logger.info(f"Contact {contact_id} deleted")
-            return True
+        db.delete(contact)
+        db.commit()
         
-        return False
+        logger.info(f"🗑️ Contact {contact_id} deleted")
+        return True
     
-    @staticmethod
-    def get_unread_count(db: Session) -> int:
+    def get_unread_count(self, db: Session) -> int:
         return db.query(Contact).filter(Contact.is_read == False).count()
     
-    @staticmethod
-    def get_recent_contacts(db: Session, days: int = 7) -> List[Contact]:
-        since = datetime.utcnow() - timedelta(days=days)
-        return db.query(Contact).filter(
-            Contact.timestamp >= since
-        ).order_by(Contact.timestamp.desc()).all()
+    def get_recent(self, db: Session, days: int = 7) -> List[Contact]:
+        cutoff = datetime.utcnow() - timedelta(days=days)
+        return db.query(Contact)\
+            .filter(Contact.timestamp >= cutoff)\
+            .order_by(desc(Contact.timestamp))\
+            .all()
+    
+    def get_by_email(self, db: Session, email: str) -> List[Contact]:
+        return db.query(Contact)\
+            .filter(Contact.email == email)\
+            .order_by(desc(Contact.timestamp))\
+            .all()
+    
+    def get_by_wallet(self, db: Session, wallet_address: str) -> List[Contact]:
+        return db.query(Contact)\
+            .filter(Contact.wallet_address == wallet_address)\
+            .order_by(desc(Contact.timestamp))\
+            .all()
+    
+    def get_stats(self, db: Session) -> dict:
+        total = db.query(Contact).count()
+        unread = self.get_unread_count(db)
+        recent = len(self.get_recent(db, days=7))
+        
+        return {
+            "total_messages": total,
+            "unread_messages": unread,
+            "messages_last_7_days": recent,
+            "read_percentage": round((total - unread) / total * 100, 2) if total > 0 else 0
+        }
+
+contact_service = ContactService()
