@@ -33,7 +33,13 @@ async def submit_contact(
 ):
     try:
         client_info = get_client_info(request)
-        db_contact = contact_service.create_contact(db, contact, client_info)
+
+        db_contact = contact_service.create_contact(
+            db=db,
+            contact_in=contact,
+            client_info=client_info
+        )
+
         contact_data = {
             "id": db_contact.id,
             "name": db_contact.name,
@@ -41,17 +47,19 @@ async def submit_contact(
             "subject": db_contact.subject,
             "message": db_contact.message,
             "timestamp": db_contact.timestamp.isoformat(),
-            "ip_address": db_contact.ip_address
         }
+
         background_tasks.add_task(send_contact_emails, contact_data)
+
         return db_contact
-        
+
     except Exception as e:
-        logger.error(f"Error submitting contact: {e}", exc_info=True)
+        logger.error("Error submitting contact", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error submitting contact message"
         )
+
 
 @router.get(
     "/messages",
@@ -67,6 +75,7 @@ async def get_contact_messages(
 ):
     return contact_service.get_all(db, skip, limit, unread_only)
 
+
 @router.get(
     "/messages/{contact_id}",
     response_model=ContactAdmin,
@@ -78,13 +87,14 @@ async def get_contact_message(
     db: Session = Depends(get_db)
 ):
     contact = contact_service.get_by_id(db, contact_id)
-    
+
     if not contact:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Contact message not found"
         )
     return contact
+
 
 @router.patch(
     "/messages/{contact_id}/read",
@@ -98,13 +108,14 @@ async def mark_message_read(
     db: Session = Depends(get_db)
 ):
     contact = contact_service.mark_as_read(db, contact_id, data.is_read)
-    
+
     if not contact:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Contact message not found"
         )
     return contact
+
 
 @router.delete(
     "/messages/{contact_id}",
@@ -117,12 +128,13 @@ async def delete_contact_message(
     db: Session = Depends(get_db)
 ):
     deleted = contact_service.delete_contact(db, contact_id)
-    
+
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Contact message not found"
         )
+
 
 @router.post(
     "/messages/{contact_id}/reply",
@@ -137,34 +149,36 @@ async def reply_to_contact(
     db: Session = Depends(get_db)
 ):
     contact = contact_service.get_by_id(db, contact_id)
-    
+
     if not contact:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Contact message not found"
         )
-    
+
     contact_data = {
         "id": contact.id,
         "name": contact.name,
         "email": contact.email,
         "subject": contact.subject,
-        "message": contact.message
+        "message": contact.message,
     }
-    
+
     background_tasks.add_task(
         send_admin_reply_email,
         contact_data,
         reply_content,
         admin_name
     )
+
     contact_service.mark_as_read(db, contact_id, True)
-    
+
     return {
         "message": "Reply sent successfully",
         "contact_id": contact_id,
         "recipient": contact.email
     }
+
 
 @router.get(
     "/stats",
