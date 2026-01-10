@@ -41,7 +41,6 @@ class ContactCreate(BaseModel):
             }
         }
 
-
 class ContactResponse(BaseModel):
     id: int
     name: str
@@ -53,7 +52,6 @@ class ContactResponse(BaseModel):
     
     class Config:
         from_attributes = True
-
 
 class ContactAdmin(BaseModel):
     id: int
@@ -71,3 +69,19 @@ class ContactAdmin(BaseModel):
 
 class ContactMarkRead(BaseModel):
     is_read: bool
+
+class ContactStats(BaseModel):
+    total_messages: int
+    unread_messages: int
+    messages_last_7_days: int
+    read_percentage: float
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "total_messages": 150,
+                "unread_messages": 23,
+                "messages_last_7_days": 12,
+                "read_percentage": 84.67
+            }
+        }
