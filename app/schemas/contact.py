@@ -41,6 +41,20 @@ class ContactCreate(BaseModel):
             }
         }
 
+class ContactUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=255)
+    email: Optional[EmailStr] = None
+    subject: Optional[str] = Field(None, min_length=5, max_length=500)
+    message: Optional[str] = Field(None, min_length=10)
+    is_read: Optional[bool] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "is_read": True
+            }
+        }
+
 class ContactResponse(BaseModel):
     id: int
     name: str
@@ -61,6 +75,7 @@ class ContactAdmin(BaseModel):
     message: str
     timestamp: datetime
     is_read: bool
+    read_at: Optional[datetime]
     ip_address: Optional[str]
     user_agent: Optional[str]
     
