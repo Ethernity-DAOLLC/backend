@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base_class import Base
+from datetime import datetime
 
 class User(Base):
     __tablename__ = "users"
@@ -62,6 +63,13 @@ class User(Base):
     notifications = relationship(
         "Notification",
         back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    
+    voter_stats = relationship(
+        "VoterStats",
+        back_populates="user",
+        uselist=False,
         cascade="all, delete-orphan"
     )
     
