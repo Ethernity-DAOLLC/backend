@@ -4,7 +4,10 @@ from app.core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
+
 database_url = settings.database_url_sync
+if database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
 
 connect_args = {}
 if settings.is_supabase:
