@@ -24,7 +24,7 @@ wheels/
 *.egg
 .bin
 .pnpm
-supabase
+.supabase
 
 # Virtual environments
 venv/
@@ -39,30 +39,43 @@ env/
 .env.*.local
 *.env
 
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.DS_Store
+DS_Store
+
+# Logs
+*.log
+logs/
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
 
-# Logs
-*.log
-logs/
-
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
+.tox/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Docker
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Railway
 .railway/
 
-# Alembic (si usas migraciones)
+# Alembic
 alembic/versions/*.pyc
+alembic/versions/__pycache__/

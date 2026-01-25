@@ -23,44 +23,138 @@ Backend API para la plataforma Ethernity DAO. Sistema de gestión de usuarios co
 
 ## 📁 Estructura del Proyecto
 ```
-backend/
+
+
+# ============================================================================
+# ESTRUCTURA FINAL DE DIRECTORIOS
+# ============================================================================
+
+ethernity-dao-backend/
 ├── app/
 │   ├── __init__.py
+│   ├── main.py                    
+│   │
 │   ├── api/
+│   │   ├── __init__.py
+│   │   ├── deps.py
 │   │   └── v1/
-│   │       ├── api.py              # Router principal
-│   │       ├── deps.py             # Dependencies
+│   │       ├── __init__.py
+│   │       ├── api.py             
 │   │       └── endpoints/
-│   │           ├── users.py        # User management
-│   │           ├── contact.py      # Contact form
-│   │           └── auth.py         # Authentication
+│   │           ├── auth.py
+│   │           ├── contact.py
+│   │           ├── users.py
+│   │           ├── survey.py
+│   │           ├── stats.py
+│   │           ├── funds.py       
+│   │           ├── tokens.py      
+│   │           ├── governance.py  
+│   │           ├── protocols.py   
+│   │           ├── treasury.py   
+│   │           ├── preferences.py
+│   │           ├── analytics.py   
+│   │           └── notifications.py 
+│   │
+│   ├── blockchain/               
+│   │   ├── __init__.py
+│   │   ├── web3_client.py
+│   │   ├── contract_manager.py
+│   │   └── event_listener.py
+│   │
 │   ├── core/
-│   │   └── config.py              # Settings & environment
+│   │   ├── __init__.py
+│   │   ├── config.py              # ✅ ACTUALIZAR
+│   │   ├── enums.py               # ✅ NUEVO
+│   │   ├── constants.py           # ✅ NUEVO
+│   │   ├── helpers.py             # ✅ NUEVO
+│   │   ├── logging.py
+│   │   ├── middleware.py
+│   │   ├── security.py
+│   │   └── exceptions.py
+│   │
 │   ├── db/
-│   │   ├── base.py                # Import all models
-│   │   ├── base_class.py          # Base SQLAlchemy class
-│   │   └── session.py             # Database session
+│   │   ├── __init__.py
+│   │   ├── base.py                # ✅ ACTUALIZADO
+│   │   ├── base_class.py
+│   │   ├── session.py
+│   │   └── init_db.py
+│   │
 │   ├── models/
-│   │   ├── user.py                # User model
-│   │   ├── contact.py             # Contact model
-│   │   └── transaction.py         # Blockchain transactions
+│   │   ├── __init__.py            # ✅ ACTUALIZADO
+│   │   ├── user.py                # ✅ ACTUALIZADO
+│   │   ├── contact.py
+│   │   ├── survey.py
+│   │   ├── faucet_request.py
+│   │   ├── token.py               # ✅ NUEVO
+│   │   ├── personal_fund.py       # ✅ NUEVO
+│   │   ├── governance.py          # ✅ NUEVO
+│   │   ├── protocol.py            # ✅ NUEVO
+│   │   ├── preferences.py         # ✅ NUEVO
+│   │   ├── treasury.py            # ✅ NUEVO
+│   │   ├── blockchain.py          # ✅ NUEVO
+│   │   ├── notification.py        # ✅ NUEVO
+│   │   └── analytics.py           # ✅ NUEVO
+│   │
 │   ├── schemas/
-│   │   ├── user.py                # Pydantic schemas
-│   │   └── contact.py
+│   │   ├── __init__.py
+│   │   ├── user.py
+│   │   ├── contact.py
+│   │   ├── survey.py
+│   │   ├── fund.py                # ✅ NUEVO
+│   │   ├── token.py               # ✅ NUEVO
+│   │   ├── governance.py          # ✅ NUEVO
+│   │   ├── protocol.py            # ✅ NUEVO
+│   │   ├── preferences.py         # ✅ NUEVO
+│   │   ├── treasury.py            # ✅ NUEVO
+│   │   ├── blockchain.py          # ✅ NUEVO
+│   │   ├── notification.py        # ✅ NUEVO
+│   │   └── analytics.py           # ✅ NUEVO
+│   │
 │   ├── services/
-│   │   ├── user_service.py        # Business logic
+│   │   ├── __init__.py
+│   │   ├── base_service.py
+│   │   ├── user_service.py
 │   │   ├── contact_service.py
-│   │   └── blockchain.py          # Web3 interactions
-│   └── tasks/
-│       └── contact_tasks.py       # Background tasks (emails)
-├── alembic/                       # Database migrations
+│   │   ├── survey_service.py
+│   │   ├── email_service.py
+│   │   ├── fund_service.py        # ✅ NUEVO
+│   │   ├── token_service.py       # ✅ NUEVO
+│   │   ├── governance_service.py  # ✅ NUEVO
+│   │   ├── protocol_service.py    # ✅ NUEVO
+│   │   ├── preference_service.py  # ✅ NUEVO
+│   │   ├── treasury_service.py    # ✅ NUEVO
+│   │   ├── blockchain_service.py  # ✅ NUEVO
+│   │   ├── analytics_service.py   # ✅ NUEVO
+│   │   └── notification_service.py # ✅ NUEVO
+│   │
+│   └── tasks/                     # ✅ NUEVO
+│       ├── __init__.py
+│       ├── celery_app.py
+│       ├── blockchain_tasks.py
+│       ├── notification_tasks.py
+│       ├── analytics_tasks.py
+│       └── contact_tasks.py       # EXISTENTE
+│
+├── alembic/
 │   ├── versions/
-│   └── env.py
-├── tests/
-├── main.py                        # FastAPI application
-├── requirements.txt
-├── .env.example
-├── .gitignore
+│   ├── env.py
+│   └── script.py.mako
+│
+├── tests/                         # ✅ RECOMENDADO CREAR
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_funds.py
+│   ├── test_tokens.py
+│   └── test_governance.py
+│
+├── contracts.json                 # ✅ EXISTENTE
+├── requirements.txt               # ✅ ACTUALIZAR
+├── requirements-dev.txt           # ✅ NUEVO
+├── Dockerfile                     # ✅ NUEVO
+├── docker-compose.yml             # ✅ NUEVO
+├── .env                           # ✅ ACTUALIZAR
+├── .gitignore                     # ✅ ACTUALIZAR
+├── alembic.ini
 └── README.md
 ```
 

@@ -117,7 +117,6 @@ class UserProtocolDeposit(Base):
     )
     total_deposited = Column(DECIMAL(18, 6), default=0, nullable=False)
     last_deposit_at = Column(DateTime(timezone=True), nullable=True)
-
     created_at = Column(
         DateTime(timezone=True), 
         server_default=func.now(), 
@@ -129,7 +128,6 @@ class UserProtocolDeposit(Base):
         onupdate=func.now(),
         nullable=False
     )
-    
     preference = relationship("UserPreference", back_populates="protocol_deposits")
     user = relationship("User")
     protocol = relationship("DeFiProtocol")

@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi import HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from contextlib import asynccontextmanager
+import asyncio
 import logging
 
 from app.core.config import settings
@@ -26,20 +27,34 @@ from app.core.exceptions import (
 )
 from app.api.deps import rate_limiter
 from app.api.v1.api import api_router
+from app.blockchain.web3_client import web3_client
+from app.blockchain.event_listener import event_listener
 
 setup_logging(settings)
 logger = logging.getLogger(__name__)
+event_listener_task = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("🚀 Starting application...")
+    global event_listener_task
+
+    logger.info("🚀 Starting Ethernity DAO Backend...")
     settings.log_config()
 
     if check_connection():
         logger.info("✅ Database connection successful")
     else:
         logger.error("❌ Database connection failed")
-    
+
+    if web3_client.is_connected():
+        logger.info(f"✅ Blockchain connected: {web3_client.network_config['name']}")
+        logger.info(f"📡 Latest block: {web3_client.get_latest_block()}")
+        if settings.ENVIRONMENT != "testing":
+            event_listener_task = asyncio.create_task(event_listener.start())
+            logger.info("🎧 Blockchain event listener started")
+    else:
+        logger.warning("⚠️ Blockchain not connected - running in limited mode")
+
     if settings.SENTRY_DSN:
         import sentry_sdk
         sentry_sdk.init(
@@ -48,10 +63,21 @@ async def lifespan(app: FastAPI):
             traces_sample_rate=1.0 if settings.is_development else 0.1,
         )
         logger.info("📊 Sentry initialized")
+    logger.info("✅ Application startup complete")
     yield
-    
+
     logger.info("🛑 Shutting down application...")
-    close_db() 
+    if event_listener_task:
+        await event_listener.stop()
+        event_listener_task.cancel()
+        try:
+            await event_listener_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("🎧 Event listener stopped")
+
+    close_db()
+    logger.info("💾 Database connections closed")
     logger.info("👋 Shutdown complete")
 
 app = FastAPI(
@@ -92,18 +118,25 @@ async def root():
         "message": f"Welcome to {settings.PROJECT_NAME}",
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT,
+        "blockchain": web3_client.network_config["name"] if web3_client.is_connected() else "disconnected",
         "docs": "/docs" if not settings.is_production else "disabled",
     }
 
 @app.get("/health")
 async def health_check():
     db_healthy = check_connection()
+    blockchain_connected = web3_client.is_connected()
     
     return {
-        "status": "healthy" if db_healthy else "unhealthy",
+        "status": "healthy" if (db_healthy and blockchain_connected) else "degraded",
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT,
         "database": "connected" if db_healthy else "disconnected",
+        "blockchain": {
+            "connected": blockchain_connected,
+            "network": web3_client.network_config["name"] if blockchain_connected else None,
+            "latest_block": web3_client.get_latest_block() if blockchain_connected else 0
+        },
         "email": "enabled" if settings.email_enabled else "disabled",
     }
 
@@ -121,6 +154,7 @@ if settings.is_development:
             "environment": settings.ENVIRONMENT,
             "debug": settings.DEBUG,
             "database": "connected" if check_connection() else "disconnected",
+            "blockchain": web3_client.network_config if web3_client.is_connected() else None,
             "email_enabled": settings.email_enabled,
             "cors_origins": settings.BACKEND_CORS_ORIGINS,
             "rate_limit_enabled": settings.RATE_LIMIT_ENABLED,
@@ -134,4 +168,17 @@ if settings.is_development:
             "checked_in": pool.checkedin(),
             "checked_out": pool.checkedout(),
             "overflow": pool.overflow(),
+        }
+    
+    @app.get("/debug/blockchain")
+    async def debug_blockchain():
+        if not web3_client.is_connected():
+            return {"error": "Not connected"}
+        
+        return {
+            "connected": True,
+            "network": web3_client.network_config["name"],
+            "chain_id": web3_client.network_config["chainId"],
+            "latest_block": web3_client.get_latest_block(),
+            "contracts": web3_client.network_config["contracts"]
         }

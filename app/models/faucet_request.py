@@ -7,11 +7,9 @@ logger = logging.getLogger(__name__)
 
 class FaucetRequest(Base):
     __tablename__ = "faucet_requests"
-
     id = Column(Integer, primary_key=True, index=True)
     wallet_address = Column(String(42), index=True, nullable=False)
     amount = Column(Numeric(precision=18, scale=6), nullable=False, default=100.000000)
-
     tx_hash = Column(String(66), nullable=True, index=True)
     status = Column(String(20), nullable=False, default="pending")
     requested_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
