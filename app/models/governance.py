@@ -5,6 +5,7 @@ from app.db.base_class import Base
 
 class Proposal(Base):
     __tablename__ = "proposals"
+    
     id = Column(Integer, primary_key=True, index=True)
     proposal_id = Column(Integer, unique=True, nullable=False, index=True)
     proposer_id = Column(Integer, ForeignKey('users.id'))
@@ -29,9 +30,13 @@ class Proposal(Base):
     cancelled_at = Column(DateTime(timezone=True))
     proposer = relationship("User", back_populates="proposals")
     votes = relationship("Vote", back_populates="proposal", cascade="all, delete-orphan")
+    
+    def __repr__(self):
+        return f"<Proposal(id={self.proposal_id}, title={self.title[:30]})>"
 
 class Vote(Base):
     __tablename__ = "votes"
+    
     id = Column(Integer, primary_key=True, index=True)
     proposal_id = Column(Integer, nullable=False, index=True)
     voter_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
@@ -44,6 +49,46 @@ class Vote(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     proposal = relationship("Proposal", back_populates="votes")
     voter = relationship("User", back_populates="votes")
+    
     __table_args__ = (
         UniqueConstraint('proposal_id', 'voter_id', name='uq_proposal_voter'),
     )
+    
+    def __repr__(self):
+        return f"<Vote(proposal_id={self.proposal_id}, voter_id={self.voter_id}, support={self.support})>"
+
+class VoterStats(Base):
+    __tablename__ = "voter_stats"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, unique=True, index=True)
+    voter_address = Column(String(42), nullable=False, index=True)
+    total_votes_cast = Column(Integer, default=0, nullable=False)
+    proposals_created = Column(Integer, default=0, nullable=False)
+    votes_for_count = Column(Integer, default=0, nullable=False)
+    votes_against_count = Column(Integer, default=0, nullable=False)
+    last_vote_at = Column(DateTime(timezone=True), nullable=True)
+    last_proposal_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    user = relationship("User", back_populates="voter_stats")
+    
+    __table_args__ = (
+        Index('idx_voter_stats_user', 'user_id'),
+        Index('idx_voter_stats_address', 'voter_address'),
+    )
+    
+    def __repr__(self):
+        return f"<VoterStats(user_id={self.user_id}, votes={self.total_votes_cast}, proposals={self.proposals_created})>"
+    
+    @property
+    def participation_rate(self) -> float:
+        if self.total_votes_cast == 0:
+            return 0.0
+        return float(self.total_votes_cast)
+    
+    @property
+    def approval_ratio(self) -> float:
+        if self.total_votes_cast == 0:
+            return 0.0
+        return (self.votes_for_count / self.total_votes_cast) * 100
