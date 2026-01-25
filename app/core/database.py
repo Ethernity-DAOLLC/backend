@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, event, pool
+from sqlalchemy import create_engine, event, pool, text
 from sqlalchemy.orm import sessionmaker, Session
 from contextlib import contextmanager
 from typing import Generator
@@ -21,9 +21,13 @@ class DatabaseManager:
         if self.settings.is_supabase:
             connect_args = {"sslmode": "require"}
             logger.info("🔒 SSL enabled for Supabase")
+        database_url = self.settings.database_url_sync
+        if database_url.startswith("postgresql://"):
+            database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+            logger.info("🔄 Using psycopg3 driver")
 
         self._engine = create_engine(
-            self.settings.database_url_sync,
+            database_url,  
             pool_pre_ping=self.settings.DB_POOL_PRE_PING,
             pool_size=self.settings.DB_POOL_SIZE,
             max_overflow=self.settings.DB_MAX_OVERFLOW,
@@ -79,7 +83,7 @@ class DatabaseManager:
     def check_connection(self) -> bool:
         try:
             with self._engine.connect() as conn:
-                conn.execute("SELECT 1")
+                conn.execute(text("SELECT 1"))
             return True
         except Exception as e:
             logger.error(f"❌ Database connection failed: {e}")
