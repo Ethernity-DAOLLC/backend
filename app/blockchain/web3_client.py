@@ -52,12 +52,6 @@ class Web3Client:
             rpc_url = self.network_config["rpc"]
             self.w3 = Web3(Web3.HTTPProvider(rpc_url))
 
-            # En web3.py 7.x, el middleware PoA ya no es necesario para la mayoría de las redes
-            # Arbitrum Sepolia y otras redes modernas funcionan sin él
-            # Si necesitas PoA middleware para redes específicas, usa:
-            # from web3.middleware import ExtraDataToPOAMiddleware
-            # self.w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
-            
             if self.w3.is_connected():
                 logger.info(f"✅ Connected to {self.network_config['name']}")
                 logger.info(f"📡 Latest block: {self.w3.eth.block_number}")
