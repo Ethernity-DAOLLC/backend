@@ -7,7 +7,6 @@ class ContactCreate(BaseModel):
     email: EmailStr
     subject: str = Field(..., min_length=5, max_length=500)
     message: str = Field(..., min_length=10)
-
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
     
