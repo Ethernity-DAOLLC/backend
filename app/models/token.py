@@ -23,7 +23,6 @@ class TokenHolder(Base):
     user = relationship("User", back_populates="token_holder")
     activities = relationship("TokenActivity", back_populates="holder", cascade="all, delete-orphan")
 
-
 class TokenActivity(Base):
     __tablename__ = "token_activities"
     id = Column(Integer, primary_key=True, index=True)
@@ -35,3 +34,21 @@ class TokenActivity(Base):
     block_number = Column(Integer)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     holder = relationship("TokenHolder", back_populates="activities")
+
+class TokenMonthlyStats(Base):
+    __tablename__ = "token_monthly_stats"
+    id = Column(Integer, primary_key=True, index=True)
+    year = Column(Integer, nullable=False, index=True)
+    month = Column(Integer, nullable=False, index=True)
+    total_burned = Column(DECIMAL(78, 18), default=0, nullable=False)
+    total_renewed = Column(DECIMAL(78, 18), default=0, nullable=False)
+    holders_burned = Column(Integer, default=0, nullable=False)
+    holders_renewed = Column(Integer, default=0, nullable=False)
+    burn_executed_at = Column(DateTime(timezone=True))
+    renew_executed_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        Index('idx_year_month', 'year', 'month', unique=True),
+    )
