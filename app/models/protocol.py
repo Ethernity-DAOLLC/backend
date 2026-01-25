@@ -17,7 +17,7 @@ class DeFiProtocol(Base):
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     verified_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    fund_investments = relationship("FundInvestment", back_populates="protocol")
+    fund_investments = relationship("FundInvestment", back_populates="protocol", cascade="all, delete-orphan")
     __table_args__ = (
         CheckConstraint('risk_level BETWEEN 1 AND 3', name='check_risk_level'),
     )
