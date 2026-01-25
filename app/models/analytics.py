@@ -1,7 +1,8 @@
 from sqlalchemy import (
     Column, Integer, String, Boolean, DateTime, DECIMAL, Date, Text,
-    Index, CheckConstraint
+    Index, CheckConstraint, UniqueConstraint, ForeignKey
 )
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base_class import Base
 import logging
@@ -18,12 +19,10 @@ class DailySnapshot(Base):
     total_funds = Column(Integer, default=0, nullable=False)
     active_funds = Column(Integer, default=0, nullable=False)
     funds_in_retirement = Column(Integer, default=0, nullable=False)
-
     total_deposits_today = Column(DECIMAL(18, 6), default=0, nullable=False)
     total_withdrawals_today = Column(DECIMAL(18, 6), default=0, nullable=False)
     total_fees_today = Column(DECIMAL(18, 6), default=0, nullable=False)
-    total_tvl = Column(DECIMAL(18, 6), default=0, nullable=False)  # Total Value Locked
-
+    total_tvl = Column(DECIMAL(18, 6), default=0, nullable=False)  
     active_proposals = Column(Integer, default=0, nullable=False)
     votes_cast_today = Column(Integer, default=0, nullable=False)
 
@@ -61,7 +60,6 @@ class DailySnapshot(Base):
     
     @property
     def net_flow_today(self) -> float:
-        """Calculate net flow (deposits - withdrawals)"""
         return float(self.total_deposits_today - self.total_withdrawals_today)
 
 class WeeklyReport(Base):
@@ -72,16 +70,13 @@ class WeeklyReport(Base):
     week_number = Column(Integer, nullable=False, index=True) 
     week_start_date = Column(Date, nullable=False)
     week_end_date = Column(Date, nullable=False)
-
     avg_daily_active_holders = Column(Integer, default=0)
     avg_daily_tvl = Column(DECIMAL(18, 6), default=0)
     total_deposits_week = Column(DECIMAL(18, 6), default=0)
     total_withdrawals_week = Column(DECIMAL(18, 6), default=0)
     total_fees_week = Column(DECIMAL(18, 6), default=0)
-    
     new_funds_created = Column(Integer, default=0)
     funds_started_retirement = Column(Integer, default=0)
-    
     proposals_created = Column(Integer, default=0)
     total_votes_cast = Column(Integer, default=0)
     created_at = Column(
@@ -104,18 +99,14 @@ class WeeklyReport(Base):
 
 class MonthlyReport(Base):
     __tablename__ = "monthly_reports"
-    
     id = Column(Integer, primary_key=True, index=True)
     year = Column(Integer, nullable=False, index=True)
     month = Column(Integer, nullable=False, index=True) 
-
     total_users_end_of_month = Column(Integer, default=0)
     new_users_this_month = Column(Integer, default=0)
-
     total_funds_end_of_month = Column(Integer, default=0)
     new_funds_this_month = Column(Integer, default=0)
     funds_in_retirement = Column(Integer, default=0)
-
     total_deposits_month = Column(DECIMAL(18, 6), default=0)
     total_withdrawals_month = Column(DECIMAL(18, 6), default=0)
     total_fees_collected = Column(DECIMAL(18, 6), default=0)
@@ -123,7 +114,6 @@ class MonthlyReport(Base):
     ending_tvl = Column(DECIMAL(18, 6), default=0)
     tokens_burned = Column(Integer, default=0)
     tokens_renewed = Column(Integer, default=0)
-
     proposals_created = Column(Integer, default=0)
     proposals_executed = Column(Integer, default=0)
     total_votes_cast = Column(Integer, default=0)
@@ -194,18 +184,14 @@ class SystemMetric(Base):
 
 class UserActivityLog(Base):
     __tablename__ = "user_activity_logs"
-    
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
     wallet_address = Column(String(42), nullable=False, index=True)
-
     activity_type = Column(String(50), nullable=False, index=True)
     activity_category = Column(String(50), nullable=False) 
     description = Column(Text, nullable=True)
-
     related_entity_type = Column(String(50), nullable=True) 
     related_entity_id = Column(Integer, nullable=True)
-
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(Text, nullable=True)
 

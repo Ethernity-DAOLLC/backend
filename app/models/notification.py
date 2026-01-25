@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, Index
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, Index, text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base_class import Base
@@ -19,7 +19,8 @@ class Notification(Base):
     user = relationship("User", back_populates="notifications")
     
     __table_args__ = (
-        Index('idx_notifications_unread', 'user_id', 'read', postgresql_where=(Column('read') == False)),
+        Index('idx_notifications_unread', 'user_id', 'read', 
+              postgresql_where=text("read = false")),
     )
     
     def __repr__(self):
