@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, Enum as SQLEnum, Boolean, Text
+from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Enum as SQLEnum, Boolean, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -27,3 +27,15 @@ class DeFiProtocol(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     fund_investments = relationship("FundInvestment", back_populates="protocol", cascade="all, delete-orphan")
+    apy_history = relationship("ProtocolAPYHistory", back_populates="protocol", cascade="all, delete-orphan")
+
+class ProtocolAPYHistory(Base):
+    __tablename__ = "protocol_apy_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    protocol_id = Column(Integer, ForeignKey("defi_protocols.id"), nullable=False)
+    apy = Column(Numeric(10, 2), nullable=False)
+    tvl = Column(Numeric(20, 2), nullable=True)
+    recorded_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    protocol = relationship("DeFiProtocol", back_populates="apy_history")
