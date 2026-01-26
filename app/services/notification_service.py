@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import logging
 
 from app.models.notification import Notification

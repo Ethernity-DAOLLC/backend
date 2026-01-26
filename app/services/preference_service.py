@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, Dict, List, Any
 import logging
 
 from app.models.preferences import UserPreference

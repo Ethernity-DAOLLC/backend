@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
-from typing import List
+from typing import List, Any, Dict, Optional
 import logging
 
 from app.models.survey import Survey, SurveyFollowUp

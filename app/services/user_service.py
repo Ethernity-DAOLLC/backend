@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, desc
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import logging
 
 from app.models.user import User
