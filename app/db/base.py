@@ -7,7 +7,7 @@ from app.models.survey import Survey, SurveyFollowUp
 from app.models.token import TokenHolder, TokenActivity, TokenMonthlyStats
 from app.models.personal_fund import PersonalFund, FundTransaction
 from app.models.governance import Proposal, Vote, VoterStats
-from app.models.protocol import DeFiProtocol
+from app.models.protocol import DeFiProtocol, ProtocolAPYHistory
 from app.models.preferences import UserPreference, UserProtocolDeposit
 from app.models.treasury import (
     TreasuryStats, FundFeeRecord, EarlyRetirementRequest, TreasuryWithdrawal
