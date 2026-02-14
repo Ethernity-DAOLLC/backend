@@ -1,12 +1,15 @@
-# Python
+# ==============================================================================
+# PYTHON
+# ==============================================================================
+
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+
+# Distribution / packaging
 .Python
-env/
-venv/
-ENV/
 build/
 develop-eggs/
 dist/
@@ -19,63 +22,475 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-.bin
-.pnpm
-.supabase
+MANIFEST
 
-# Virtual environments
-venv/
-ENV/
-env/
-.venv
+# PyInstaller
+*.manifest
+*.spec
 
-# Environment variables
-.env
-.env.local
-.env.production
-.env.*.local
-*.env
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
 
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-DS_Store
-
-# Logs
-*.log
-logs/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Testing
-.pytest_cache/
-.coverage
+# Unit test / coverage reports
 htmlcov/
 .tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+pytest_cache/
+test-results/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff (por si acaso)
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff (por si acaso)
+instance/
+.webassets-cache
+
+# Scrapy stuff (por si acaso)
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+docs/.build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
 
 # Celery
 celerybeat-schedule
 celerybeat.pid
+celerybeat-schedule.db
 
-# Docker
-docker-compose.override.yml
+# SageMath parsed files
+*.sage.py
 
-# OS
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# ==============================================================================
+# VIRTUAL ENVIRONMENTS
+# ==============================================================================
+
+venv/
+env/
+ENV/
+.venv/
+.env/
+virtualenv/
+.virtualenv/
+
+# Poetry
+poetry.lock
+
+# ==============================================================================
+# ENVIRONMENT VARIABLES & SECRETS
+# ==============================================================================
+
+.env
+.env.*
+.env.local
+.env.production
+.env.staging
+.env.development
+.env.test
+*.env
+!.env.example
+!.env.template
+
+# Secrets
+secrets/
+*.secret
+*.key
+*.pem
+*.crt
+*.cer
+*.p12
+*.pfx
+
+# Configuration with sensitive data
+config.local.py
+local_config.py
+*_local.py
+
+# ==============================================================================
+# IDEs & EDITORS
+# ==============================================================================
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.vim/
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Visual Studio
+.vs/
+
+# ==============================================================================
+# OPERATING SYSTEMS
+# ==============================================================================
+
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
 Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+.directory
+.Trash-*
+.nfs*
+
+# ==============================================================================
+# DATABASES
+# ==============================================================================
+
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# PostgreSQL
+*.pgdata
+postgresql/
+
+# Redis dumps
+dump.rdb
+
+# ==============================================================================
+# LOGS & MONITORING
+# ==============================================================================
+
+logs/
+*.log
+log/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Sentry
+.sentryclirc
+
+# ==============================================================================
+# DOCKER & CONTAINERS
+# ==============================================================================
+
+docker-compose.override.yml
+docker-compose.local.yml
+.docker/
+
+# ==============================================================================
+# DEPLOYMENT PLATFORMS
+# ==============================================================================
 
 # Railway
 .railway/
+railway.json
 
-# Alembic
+# Render
+.render/
+
+# Vercel
+.vercel/
+
+# Heroku
+.heroku/
+
+# AWS
+.aws/
+.elasticbeanstalk/
+
+# Google Cloud
+.gcloud/
+
+# ==============================================================================
+# NODE.JS / FRONTEND (si hay frontend)
+# ==============================================================================
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.yarn/
+.pnp.*
+
+# Build outputs
+dist/
+out/
+.next/
+.nuxt/
+build/
+
+# ==============================================================================
+# BLOCKCHAIN & WEB3
+# ==============================================================================
+
+# Hardhat
+cache/
+artifacts/
+typechain/
+typechain-types/
+
+# Truffle
+.truffle/
+
+# Foundry
+out/
+cache_hardhat/
+cache_forge/
+
+# Private keys (MUY IMPORTANTE - NUNCA COMMITEAR)
+*.private
+*.privatekey
+privatekey.txt
+private_key.txt
+mnemonic.txt
+keystore/
+wallets/
+
+# Smart contract builds
+contracts/build/
+contracts/artifacts/
+
+# ==============================================================================
+# SUPABASE
+# ==============================================================================
+
+.supabase/
+supabase/.env
+supabase/.env.local
+
+# ==============================================================================
+# ALEMBIC (Database Migrations)
+# ==============================================================================
+
+# Compiled migration files
 alembic/versions/*.pyc
 alembic/versions/__pycache__/
+alembic/__pycache__/
+
+# Keep the versions directory structure but not local migrations
+# alembic/versions/*.py  # Descomentar si quieres ignorar todas las migraciones
+
+# ==============================================================================
+# BACKUPS & TEMPORARY FILES
+# ==============================================================================
+
+*.bak
+*.backup
+*.tmp
+*.temp
+~*
+*.old
+*.orig
+
+# Backups
+backups/
+backup/
+*.sql.gz
+*.dump
+
+# ==============================================================================
+# MEDIA & UPLOADS
+# ==============================================================================
+
+media/
+uploads/
+static/media/
+user_uploads/
+
+# Large files
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.zip
+*.tar.gz
+*.rar
+
+# ==============================================================================
+# DOCUMENTATION
+# ==============================================================================
+
+# Keep docs but ignore builds
+docs/_build/
+docs/.build/
+site/
+
+# ==============================================================================
+# MISC
+# ==============================================================================
+
+# Lock files (opcional - depende del workflow)
+# requirements.txt.lock
+# poetry.lock
+# Pipfile.lock
+
+# Package manager directories
+.bin/
+.pnpm/
+
+# Jupyter
+.jupyter/
+
+# SSL Certificates (local dev)
+*.local.pem
+localhost.pem
+localhost-key.pem
+
+# GraphQL
+schema.graphql.bak
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# ==============================================================================
+# PROJECT SPECIFIC
+# ==============================================================================
+
+# Datos de prueba sensibles
+test_data/
+seed_data/private/
+
+# Archivos temporales de desarrollo
+TODO.md
+NOTES.md
+scratch/
+temp/
+
+# Reportes generados
+reports/
+analytics_data/
+
+# Cache de API keys o tokens
+.api_cache/
+.token_cache/
+
+# ==============================================================================
+# KEEP THESE (Archivos que SÍ queremos en Git)
+# ==============================================================================
+
+# Mantener archivos de ejemplo
+!.env.example
+!.env.template
+!docker-compose.example.yml
+!config.example.py
+
+# Mantener estructura de directorios vacíos
+!.gitkeep
+
+# Mantener migraciones de Alembic (si las quieres en Git)
+!alembic/versions/*.py
+!alembic/versions/__init__.py
+
+# Mantener archivos de configuración de proyecto
+!.editorconfig
+!.eslintrc.js
+!pytest.ini
+!setup.py
+!pyproject.toml

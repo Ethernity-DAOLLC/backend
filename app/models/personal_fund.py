@@ -34,8 +34,7 @@ class PersonalFund(Base):
     status = Column(SQLEnum(FundStatus), default=FundStatus.ACTIVE, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-
-    user = relationship("User", back_populates="personal_funds")
+    owner = relationship("User", back_populates="personal_fund")
     transactions = relationship("FundTransaction", back_populates="fund", cascade="all, delete-orphan")
     investments = relationship("FundInvestment", back_populates="fund", cascade="all, delete-orphan")
 
@@ -49,7 +48,6 @@ class FundTransaction(Base):
     description = Column(Text, nullable=True)
     transaction_hash = Column(String(66), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-
     fund = relationship("PersonalFund", back_populates="transactions")
 
 class FundInvestment(Base):
@@ -64,6 +62,5 @@ class FundInvestment(Base):
     status = Column(SQLEnum(InvestmentStatus), default=InvestmentStatus.PENDING, nullable=False)
     invested_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     completed_at = Column(DateTime, nullable=True)
-
     fund = relationship("PersonalFund", back_populates="investments")
     project = relationship("Project", back_populates="fund_investments")

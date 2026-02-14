@@ -22,8 +22,6 @@ Backend API para la plataforma Ethernity DAO. Sistema de gestión de usuarios co
 - ✅ API RESTful documentada (Swagger/OpenAPI)
 
 ## 📁 Estructura del Proyecto
-```
-
 
 # ============================================================================
 # ESTRUCTURA FINAL DE DIRECTORIOS
@@ -63,10 +61,10 @@ ethernity-dao-backend/
 │   │
 │   ├── core/
 │   │   ├── __init__.py
-│   │   ├── config.py              # ✅ ACTUALIZAR
-│   │   ├── enums.py               # ✅ NUEVO
-│   │   ├── constants.py           # ✅ NUEVO
-│   │   ├── helpers.py             # ✅ NUEVO
+│   │   ├── config.py            
+│   │   ├── enums.py             
+│   │   ├── constants.py          
+│   │   ├── helpers.py        
 │   │   ├── logging.py
 │   │   ├── middleware.py
 │   │   ├── security.py
@@ -74,41 +72,41 @@ ethernity-dao-backend/
 │   │
 │   ├── db/
 │   │   ├── __init__.py
-│   │   ├── base.py                # ✅ ACTUALIZADO
+│   │   ├── base.py             
 │   │   ├── base_class.py
 │   │   ├── session.py
 │   │   └── init_db.py
 │   │
 │   ├── models/
-│   │   ├── __init__.py            # ✅ ACTUALIZADO
-│   │   ├── user.py                # ✅ ACTUALIZADO
+│   │   ├── __init__.py          
+│   │   ├── user.py              
 │   │   ├── contact.py
 │   │   ├── survey.py
 │   │   ├── faucet_request.py
-│   │   ├── token.py               # ✅ NUEVO
-│   │   ├── personal_fund.py       # ✅ NUEVO
-│   │   ├── governance.py          # ✅ NUEVO
-│   │   ├── protocol.py            # ✅ NUEVO
-│   │   ├── preferences.py         # ✅ NUEVO
-│   │   ├── treasury.py            # ✅ NUEVO
-│   │   ├── blockchain.py          # ✅ NUEVO
-│   │   ├── notification.py        # ✅ NUEVO
-│   │   └── analytics.py           # ✅ NUEVO
+│   │   ├── token.py             
+│   │   ├── personal_fund.py     
+│   │   ├── governance.py          
+│   │   ├── protocol.py          
+│   │   ├── preferences.py        
+│   │   ├── treasury.py         
+│   │   ├── blockchain.py      
+│   │   ├── notification.py      
+│   │   └── analytics.py          
 │   │
 │   ├── schemas/
 │   │   ├── __init__.py
 │   │   ├── user.py
 │   │   ├── contact.py
 │   │   ├── survey.py
-│   │   ├── fund.py                # ✅ NUEVO
-│   │   ├── token.py               # ✅ NUEVO
-│   │   ├── governance.py          # ✅ NUEVO
-│   │   ├── protocol.py            # ✅ NUEVO
-│   │   ├── preferences.py         # ✅ NUEVO
-│   │   ├── treasury.py            # ✅ NUEVO
-│   │   ├── blockchain.py          # ✅ NUEVO
-│   │   ├── notification.py        # ✅ NUEVO
-│   │   └── analytics.py           # ✅ NUEVO
+│   │   ├── fund.py                
+│   │   ├── token.py             
+│   │   ├── governance.py          
+│   │   ├── protocol.py         
+│   │   ├── preferences.py      
+│   │   ├── treasury.py           
+│   │   ├── blockchain.py          
+│   │   ├── notification.py       
+│   │   └── analytics.py          
 │   │
 │   ├── services/
 │   │   ├── __init__.py
@@ -117,46 +115,46 @@ ethernity-dao-backend/
 │   │   ├── contact_service.py
 │   │   ├── survey_service.py
 │   │   ├── email_service.py
-│   │   ├── fund_service.py        # ✅ NUEVO
-│   │   ├── token_service.py       # ✅ NUEVO
-│   │   ├── governance_service.py  # ✅ NUEVO
-│   │   ├── protocol_service.py    # ✅ NUEVO
-│   │   ├── preference_service.py  # ✅ NUEVO
-│   │   ├── treasury_service.py    # ✅ NUEVO
-│   │   ├── blockchain_service.py  # ✅ NUEVO
-│   │   ├── analytics_service.py   # ✅ NUEVO
-│   │   └── notification_service.py # ✅ NUEVO
+│   │   ├── fund_service.py      
+│   │   ├── token_service.py     
+│   │   ├── governance_service.py  
+│   │   ├── protocol_service.py    
+│   │   ├── preference_service.py 
+│   │   ├── treasury_service.py    
+│   │   ├── blockchain_service.py  
+│   │   ├── analytics_service.py  
+│   │   └── notification_service.py 
 │   │
-│   └── tasks/                     # ✅ NUEVO
+│   └── tasks/                    
 │       ├── __init__.py
 │       ├── celery_app.py
 │       ├── blockchain_tasks.py
 │       ├── notification_tasks.py
 │       ├── analytics_tasks.py
-│       └── contact_tasks.py       # EXISTENTE
+│       └── contact_tasks.py      
 │
 ├── alembic/
 │   ├── versions/
 │   ├── env.py
 │   └── script.py.mako
 │
-├── tests/                         # ✅ RECOMENDADO CREAR
+├── tests/                         
 │   ├── __init__.py
 │   ├── conftest.py
 │   ├── test_funds.py
 │   ├── test_tokens.py
 │   └── test_governance.py
 │
-├── contracts.json                 # ✅ EXISTENTE
-├── requirements.txt               # ✅ ACTUALIZAR
-├── requirements-dev.txt           # ✅ NUEVO
-├── Dockerfile                     # ✅ NUEVO
-├── docker-compose.yml             # ✅ NUEVO
-├── .env                           # ✅ ACTUALIZAR
-├── .gitignore                     # ✅ ACTUALIZAR
+├── contracts.json                
+├── requirements.txt               
+├── requirements-dev.txt           
+├── Dockerfile                     
+├── docker-compose.yml            
+├── .env                          
+├── .gitignore                     
 ├── alembic.ini
 └── README.md
-```
+
 
 ## 🛠️ Setup Local
 
@@ -308,7 +306,6 @@ Authorization: Bearer {ADMIN_TOKEN}
 
 ### 1. Conectar con GitHub
 ```bash
-# Push tu código a GitHub
 git add .
 git commit -m "Deploy backend"
 git push origin main
@@ -339,7 +336,6 @@ ADMIN_TOKEN=secure_token_here
 
 ### 4. Start Command
 
-Railway detecta automáticamente, pero puedes configurar:
 ```bash
 uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
