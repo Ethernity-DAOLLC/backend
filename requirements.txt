@@ -54,10 +54,16 @@ redis==5.2.1
 python-json-logger==3.2.1
 
 # =============================================
-# SECURITY
+# SECURITY - UPDATED
 # =============================================
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
+PyJWT==2.10.1                  
+cryptography==43.0.0             
+passlib[bcrypt]==1.7.4       
+
+# =============================================
+# RATE LIMITING - NEW
+# =============================================
+fastapi-limiter==0.1.6          
 
 # =============================================
 # MONITORING & ERROR TRACKING
@@ -69,5 +75,4 @@ sentry-sdk[fastapi]==2.19.2
 # =============================================
 pytest==8.3.4
 pytest-asyncio==0.24.0
-# httpx limitado a 0.27.x por compatibilidad con supabase 2.10.0
 httpx==0.27.2
