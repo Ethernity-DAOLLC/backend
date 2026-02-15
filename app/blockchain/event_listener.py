@@ -69,22 +69,22 @@ class EventListener:
         
         try:
             transfer_filter = contract.events.Transfer.create_filter(
-                fromBlock=from_block,
-                toBlock=to_block
+                from_block=from_block,
+                to_block=to_block
             )
             for event in transfer_filter.get_all_entries():
                 await self._save_event("Transfer", "token", event)
             if hasattr(contract.events, 'TokensBurned'):
                 burn_filter = contract.events.TokensBurned.create_filter(
-                    fromBlock=from_block,
-                    toBlock=to_block
+                    from_block=from_block,
+                    to_block=to_block
                 )
                 for event in burn_filter.get_all_entries():
                     await self._save_event("TokensBurned", "token", event)
             if hasattr(contract.events, 'TokensRenewed'):
                 renew_filter = contract.events.TokensRenewed.create_filter(
-                    fromBlock=from_block,
-                    toBlock=to_block
+                    from_block=from_block,
+                    to_block=to_block
                 )
                 for event in renew_filter.get_all_entries():
                     await self._save_event("TokensRenewed", "token", event)
@@ -98,8 +98,8 @@ class EventListener:
         
         try:
             fund_filter = contract.events.FundCreated.create_filter(
-                fromBlock=from_block,
-                toBlock=to_block
+                from_block=from_block,
+                to_block=to_block
             )
             for event in fund_filter.get_all_entries():
                 await self._save_event("FundCreated", "factory", event)
@@ -113,15 +113,15 @@ class EventListener:
         
         try:
             proposal_filter = contract.events.ProposalCreated.create_filter(
-                fromBlock=from_block,
-                toBlock=to_block
+                from_block=from_block,
+                to_block=to_block
             )
             
             for event in proposal_filter.get_all_entries():
                 await self._save_event("ProposalCreated", "governance", event)
             vote_filter = contract.events.VoteCast.create_filter(
-                fromBlock=from_block,
-                toBlock=to_block
+                from_block=from_block,
+                to_block=to_block
             )
             for event in vote_filter.get_all_entries():
                 await self._save_event("VoteCast", "governance", event)
