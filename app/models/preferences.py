@@ -52,7 +52,8 @@ class UserPreference(Base):
     protocol_deposits = relationship(
         "UserProtocolDeposit", 
         back_populates="preference", 
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        foreign_keys="UserProtocolDeposit.preference_id" 
     )
 
     __table_args__ = (
@@ -115,6 +116,12 @@ class UserProtocolDeposit(Base):
         nullable=False, 
         index=True
     )
+    preference_id = Column(
+        Integer,
+        ForeignKey('user_preferences.id', ondelete='CASCADE'),
+        nullable=True,
+        index=True
+    )
     total_deposited = Column(DECIMAL(18, 6), default=0, nullable=False)
     last_deposit_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(
@@ -128,7 +135,12 @@ class UserProtocolDeposit(Base):
         onupdate=func.now(),
         nullable=False
     )
-    preference = relationship("UserPreference", back_populates="protocol_deposits")
+
+    preference = relationship(
+        "UserPreference",
+        back_populates="protocol_deposits",
+        foreign_keys=[preference_id]  
+    )
     user = relationship("User")
     protocol = relationship("DeFiProtocol")
 
@@ -136,6 +148,7 @@ class UserProtocolDeposit(Base):
         UniqueConstraint('user_id', 'protocol_id', name='uq_user_protocol'),
         Index('idx_user_protocol_deposits_user', 'user_id'),
         Index('idx_user_protocol_deposits_protocol', 'protocol_id'),
+        Index('idx_user_protocol_deposits_preference', 'preference_id'),
     )
     
     def __repr__(self):
