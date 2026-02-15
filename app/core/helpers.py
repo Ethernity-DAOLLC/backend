@@ -1,6 +1,32 @@
 from decimal import Decimal
 from datetime import datetime, timedelta
 from typing import Optional
+from app.core.enums import ProposalStatus, FundStatus
+
+FEE_BASIS_POINTS = 250  # 2.5%
+BASIS_POINTS = 10000
+BURN_DAY = 25
+RENEW_DAY = 26
+
+RISK_LEVELS = {
+    1: "Low",
+    2: "Medium",
+    3: "High"
+}
+
+STRATEGY_NAMES = {
+    0: "Manual",
+    1: "Best APY",
+    2: "Risk Adjusted",
+    3: "Diversified"
+}
+
+PROPOSAL_TYPE_NAMES = {
+    0: "General",
+    1: "Early Retirement",
+    2: "Treasury",
+    3: "Parameter Change"
+}
 
 def calculate_fee(amount: Decimal) -> Decimal:
     return (amount * FEE_BASIS_POINTS) / BASIS_POINTS
@@ -30,7 +56,6 @@ def get_proposal_status(
         return ProposalStatus.CANCELLED.value
     if executed:
         return ProposalStatus.EXECUTED.value
-    
     now = datetime.utcnow()
     
     if now < start_time:
@@ -84,6 +109,7 @@ def days_until_renew() -> int:
     return (next_renew - today).days
 
 def format_wallet_address(address: str) -> str:
+    """Format wallet address for display (0x1234...5678)"""
     if not address or len(address) < 10:
         return address
     return f"{address[:6]}...{address[-4:]}"

@@ -2,13 +2,13 @@ from sqlalchemy.orm import Session
 from fastapi import Request, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Generator, Optional, Dict, Any
-from collections import defaultdict
-from datetime import datetime, timedelta
 import logging
 
 from app.core.config import settings
 from app.core.database import db_manager
 from app.core.security import security_manager, security_scheme
+from app.models.user import User
+from app.services.user_service import user_service
 
 logger = logging.getLogger(__name__)
 
@@ -28,49 +28,31 @@ def get_current_admin(
 ) -> Dict[str, Any]:
     return security_manager.verify_admin_token(credentials)
 
-class RateLimiter:
-    def __init__(self):
-        self.requests: Dict[str, list[datetime]] = defaultdict(list)
-    
-    def check_rate_limit(
-        self,
-        identifier: str,
-        max_requests: int = 60,
-        window_seconds: int = 60
-    ) -> bool:
-        now = datetime.utcnow()
-        cutoff = now - timedelta(seconds=window_seconds)
-        self.requests[identifier] = [
-            ts for ts in self.requests[identifier]
-            if ts > cutoff
-        ]
-        if len(self.requests[identifier]) >= max_requests:
-            return False
-        self.requests[identifier].append(now)
-        return True
-    
-    def get_identifier(self, request: Request) -> str:
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-        return request.client.host if request.client else "unknown"
-
-rate_limiter = RateLimiter()
-
-def check_rate_limit(request: Request) -> None:
-    if not settings.RATE_LIMIT_ENABLED:
-        return
-    identifier = rate_limiter.get_identifier(request)
-    
-    if not rate_limiter.check_rate_limit(
-        identifier,
-        max_requests=settings.RATE_LIMIT_PER_MINUTE,
-        window_seconds=60
-    ):
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
+    db: Session = Depends(get_db)
+) -> User:
+    payload = security_manager.verify_user_token(credentials)
+    user_id = payload.get("user_id")
+    if not user_id:
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Rate limit exceeded. Please try again later."
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload"
         )
+    
+    user = user_service.get(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive"
+        )
+    return user
 
 def get_client_info(request: Request) -> Dict[str, Optional[str]]:
     return {

@@ -15,7 +15,6 @@ from app.db.session import check_connection, close_db
 from app.core.middleware import (
     RequestLoggingMiddleware,
     SecurityHeadersMiddleware,
-    RateLimitMiddleware,
 )
 from app.core.exceptions import (
     AppException,
@@ -25,7 +24,7 @@ from app.core.exceptions import (
     database_exception_handler,
     generic_exception_handler,
 )
-from app.api.deps import rate_limiter
+from app.core.rate_limiter import rate_limiter  
 from app.api.v1.api import api_router
 from app.blockchain.web3_client import web3_client
 from app.blockchain.event_listener import event_listener
@@ -37,7 +36,6 @@ event_listener_task = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global event_listener_task
-
     logger.info("🚀 Starting Ethernity DAO Backend...")
     settings.log_config()
 
@@ -45,6 +43,16 @@ async def lifespan(app: FastAPI):
         logger.info("✅ Database connection successful")
     else:
         logger.error("❌ Database connection failed")
+
+    if settings.RATE_LIMIT_ENABLED:
+        try:
+            await rate_limiter.initialize()
+            logger.info("✅ Redis rate limiter initialized")
+        except Exception as e:
+            logger.error(f"⚠️ Failed to initialize rate limiter: {e}")
+            logger.warning("Continuing without rate limiting...")
+    else:
+        logger.info("ℹ️ Rate limiting disabled by configuration")
 
     if web3_client.is_connected():
         logger.info(f"✅ Blockchain connected: {web3_client.network_config['name']}")
@@ -54,7 +62,6 @@ async def lifespan(app: FastAPI):
             logger.info("🎧 Blockchain event listener started")
     else:
         logger.warning("⚠️ Blockchain not connected - running in limited mode")
-
     if settings.SENTRY_DSN:
         import sentry_sdk
         sentry_sdk.init(
@@ -63,7 +70,9 @@ async def lifespan(app: FastAPI):
             traces_sample_rate=1.0 if settings.is_development else 0.1,
         )
         logger.info("📊 Sentry initialized")
+    
     logger.info("✅ Application startup complete")
+
     yield
 
     logger.info("🛑 Shutting down application...")
@@ -76,6 +85,12 @@ async def lifespan(app: FastAPI):
             pass
         logger.info("🎧 Event listener stopped")
 
+    if settings.RATE_LIMIT_ENABLED:
+        try:
+            await rate_limiter.close()
+            logger.info("🔌 Redis rate limiter closed")
+        except Exception as e:
+            logger.error(f"Error closing rate limiter: {e}")
     close_db()
     logger.info("💾 Database connections closed")
     logger.info("👋 Shutdown complete")
@@ -99,9 +114,9 @@ app.add_middleware(
     expose_headers=["X-Process-Time"],
     max_age=600,
 )
+
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(RateLimitMiddleware, rate_limiter=rate_limiter)
 
 if settings.is_development or settings.DEBUG:
     app.add_middleware(RequestLoggingMiddleware)
@@ -126,6 +141,13 @@ async def root():
 async def health_check():
     db_healthy = check_connection()
     blockchain_connected = web3_client.is_connected()
+    redis_healthy = False
+    if settings.RATE_LIMIT_ENABLED and rate_limiter.redis_client:
+        try:
+            await rate_limiter.redis_client.ping()
+            redis_healthy = True
+        except:
+            pass
     
     return {
         "status": "healthy" if (db_healthy and blockchain_connected) else "degraded",
@@ -138,6 +160,8 @@ async def health_check():
             "latest_block": web3_client.get_latest_block() if blockchain_connected else 0
         },
         "email": "enabled" if settings.email_enabled else "disabled",
+        "redis": "connected" if redis_healthy else "disconnected",  
+        "rate_limiting": "enabled" if settings.RATE_LIMIT_ENABLED else "disabled", 
     }
 
 app.include_router(
@@ -158,6 +182,8 @@ if settings.is_development:
             "email_enabled": settings.email_enabled,
             "cors_origins": settings.BACKEND_CORS_ORIGINS,
             "rate_limit_enabled": settings.RATE_LIMIT_ENABLED,
+            "rate_limit_per_minute": settings.RATE_LIMIT_PER_MINUTE if settings.RATE_LIMIT_ENABLED else None,
+            "rate_limit_per_hour": settings.RATE_LIMIT_PER_HOUR if settings.RATE_LIMIT_ENABLED else None,
         }
     
     @app.get("/debug/db-pool")
@@ -182,3 +208,44 @@ if settings.is_development:
             "latest_block": web3_client.get_latest_block(),
             "contracts": web3_client.network_config["contracts"]
         }
+    
+    @app.get("/debug/redis")
+    async def debug_redis():
+        if not settings.RATE_LIMIT_ENABLED:
+            return {"status": "disabled"}
+        
+        if not rate_limiter.redis_client:
+            return {"status": "not_initialized"}
+        
+        try:
+            await rate_limiter.redis_client.ping()
+            info = await rate_limiter.redis_client.info()
+            
+            return {
+                "status": "connected",
+                "version": info.get("redis_version"),
+                "uptime_seconds": info.get("uptime_in_seconds"),
+                "connected_clients": info.get("connected_clients"),
+                "used_memory_human": info.get("used_memory_human"),
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": str(e)
+            }
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    logger.info("=" * 80)
+    logger.info(f"Starting {settings.PROJECT_NAME} v{settings.VERSION}")
+    logger.info(f"Environment: {settings.ENVIRONMENT}")
+    logger.info("=" * 80)
+    
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=settings.is_development,
+        log_level="info" if settings.is_development else "warning"
+    )

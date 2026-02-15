@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import desc  
 from typing import Optional, Dict, List, Any
+from datetime import datetime 
 import logging
 
 from app.models.preferences import UserPreference
@@ -40,7 +42,6 @@ class PreferenceService(BaseService[UserPreference]):
         existing = self.get_preferences(db, wallet_address)
         if existing:
             raise ValueError("Preferences already exist")
-        
         prefs = UserPreference(
             user_id=user.id,
             wallet_address=wallet_address,
